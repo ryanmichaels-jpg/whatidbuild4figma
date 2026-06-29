@@ -1,0 +1,10 @@
+{
+  "_comment": "SYNTHETIC Salesforce accounts fixture for demo mode. Fabricated, not real Figma CRM data. Lets the account-match + expansion-routing stage run zero-cred and be tested. In live mode this is replaced by the Salesforce API (see accounts.py). Match is by normalized company name.",
+  "accounts": [
+    {"account_name": "Acme", "aliases": ["acme", "acme inc", "acme corp"], "is_customer": true, "plan": "enterprise", "seats": 1200, "arr_usd": 480000, "account_owner": "Priya Anand (AE, Enterprise)"},
+    {"account_name": "Northwind", "aliases": ["northwind", "northwind co"], "is_customer": true, "plan": "org", "seats": 300, "arr_usd": 120000, "account_owner": "Marcus Lee (AE, Mid-Market)"},
+    {"account_name": "Brightloom", "aliases": ["brightloom"], "is_customer": true, "plan": "free", "seats": 8, "arr_usd": 0, "account_owner": "Growth Pod (PLG)"},
+    {"account_name": "Glasshouse", "aliases": ["glasshouse"], "is_customer": true, "plan": "pro", "seats": 40, "arr_usd": 6000, "account_owner": "Dana Kim (AE, SMB)"},
+    {"account_name": "Vaultline", "aliases": ["vaultline"], "is_customer": false, "plan": "none", "seats": null, "arr_usd": null, "account_owner": "Sara Okoye (AE, prospecting)"}
+  ]
+}

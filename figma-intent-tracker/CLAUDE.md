@@ -32,6 +32,13 @@ generic scrape-and-spam pipeline. Hold these invariants:
    Never invent a person, company, quote, or metric. Business-impact numbers in the
    dashboard stay blank and marked "(confirm with real CRM data)".
 
+7a. **CRM data is never fabricated.** The Salesforce account match (`accounts.py`)
+   uses a clearly-labeled SYNTHETIC fixture (`data/sfdc_accounts.json`) in demo mode;
+   the real Salesforce API is the live integration point and account `source` is
+   labeled ("demo" / "demo-fallback" / "live"). Never present synthetic accounts as
+   real customers. Account match + routing run only for actionable (surface/review)
+   leads -- never a CRM lookup on dropped noise.
+
 8. **Never commit real scraped people's data.** Live output goes to
    `data/*-live.json`, which is gitignored. Committed fixtures are synthetic and
    labeled. The golden set in `data/golden.json` is the eval's ground truth.

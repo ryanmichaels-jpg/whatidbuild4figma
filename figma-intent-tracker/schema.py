@@ -48,11 +48,32 @@ class TitleStatus(str, Enum):
     missing = "missing"      # no headline -> route to human review, never a silent drop
 
 
+class PlanTier(str, Enum):
+    """Figma account plan, from Salesforce."""
+
+    none = "none"          # no account on file
+    free = "free"
+    pro = "pro"
+    org = "org"
+    enterprise = "enterprise"
+
+
+class SignalType(str, Enum):
+    """What the account match makes this lead mean for a rep."""
+
+    churn_risk = "churn_risk"   # existing paid customer showing design-tool intent elsewhere
+    expansion = "expansion"     # existing customer, softer expand signal
+    upsell = "upsell"           # PLG free/pro customer to move up a tier
+    net_new = "net_new"         # company not a customer -> new logo
+    enrich = "enrich"           # no company captured -> enrich before routing
+
+
 class Commenter(BaseModel):
     """A person who commented on an intent post. Raw extraction or synthetic fixture."""
 
     name: str
     headline: Optional[str] = None
+    company: Optional[str] = None  # current employer, for the Salesforce account match
     profile_url: Optional[str] = None
     comment_text: str
     reaction: Optional[str] = None
@@ -83,14 +104,43 @@ class Classification(BaseModel):
     )
 
 
+class Account(BaseModel):
+    """A Salesforce account match for a commenter's company.
+
+    In demo mode this comes from a synthetic, clearly-labeled fixture; in live mode
+    it would come from the Salesforce API. Never fabricate real customer data.
+    """
+
+    query_company: str               # the company we looked up
+    matched: bool                    # did we find an account?
+    account_name: Optional[str] = None
+    is_customer: bool = False
+    plan: PlanTier = PlanTier.none
+    seats: Optional[int] = None
+    arr_usd: Optional[int] = None
+    account_owner: Optional[str] = None  # the AE who owns the account
+    source: str = "demo"             # "demo" (synthetic) or "live" (Salesforce)
+
+
+class Routing(BaseModel):
+    """Where a lead should go, and how urgently, after the account match."""
+
+    signal_type: SignalType
+    priority: int                    # 0 = highest (P0) .. 3 = lowest
+    recipient: str                   # who acts: the AE (account owner) or an SDR
+    rationale: str
+
+
 class Lead(BaseModel):
-    """A commenter after the full pipeline: title filter -> (classify) -> gate."""
+    """A commenter after the full pipeline: title filter -> (classify) -> gate -> account match."""
 
     commenter: Commenter
     title: TitleResult
     classification: Optional[Classification] = None  # None when dropped/reviewed before the LLM
     decision: Decision
     reason: str
+    account: Optional[Account] = None   # set for actionable (surface/review) leads
+    routing: Optional[Routing] = None
 
 
 def classification_json_schema() -> dict:

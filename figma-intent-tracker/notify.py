@@ -18,9 +18,29 @@ def build_payload(lead: Lead) -> dict:
     c = lead.commenter
     cls = lead.classification
     persona = lead.title.persona.value if lead.title.persona else "unknown"
+    r = lead.routing
+    acct = lead.account
+
+    header = f"*New design-tool signal* ({persona} / {cls.intent_type.value}, conf {cls.confidence:.2f})"
+    if r:
+        header = f"*[P{r.priority}] {r.signal_type.value.upper()} signal* ({persona} / {cls.intent_type.value}, conf {cls.confidence:.2f})"
+
     lines = [
-        f"*New Figma switching signal* ({persona} / {cls.intent_type.value}, conf {cls.confidence:.2f})",
+        header,
         f"*{c.name}* -- {c.headline or 'no title'}",
+        f"Company: {c.company or 'unknown'}",
+    ]
+    if acct and acct.matched:
+        plan = acct.plan.value
+        seats = f", {acct.seats} seats" if acct.seats else ""
+        arr = f", ${acct.arr_usd:,} ARR" if acct.arr_usd else ""
+        cust = "customer" if acct.is_customer else "not a customer"
+        lines.append(f"Salesforce: {acct.account_name} ({plan} {cust}{seats}{arr})")
+    elif acct:
+        lines.append("Salesforce: no account match (net-new)")
+    if r:
+        lines.append(f"Route to: {r.recipient}  --  {r.rationale}")
+    lines += [
         f"Need: {cls.need}",
         f"Evidence (verbatim): \"{cls.evidence_quote}\"",
         f"Suggested angle: {cls.suggested_angle}",

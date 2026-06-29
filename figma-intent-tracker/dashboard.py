@@ -39,22 +39,53 @@ def render(leads: list[Lead], mode: str) -> str:
     )
     prec = precision_vs_golden(leads)
 
+    def _acct_cell(x):
+        a = x.account
+        if a and a.matched:
+            cust = "customer" if a.is_customer else "prospect"
+            seats = f" / {a.seats} seats" if a.seats else ""
+            return f"{html.escape(a.account_name or '')} ({a.plan.value} {cust}{seats})"
+        if a:
+            return "net-new"
+        return ""
+
+    def _signal_cell(x):
+        r = x.routing
+        return f"P{r.priority} {r.signal_type.value}" if r else ""
+
     surfaced_rows = ""
     for x in leads:
         if x.decision != Decision.surface:
             continue
         c, cls = x.commenter, x.classification
+        route = x.routing.recipient if x.routing else ""
         surfaced_rows += (
             "<tr>"
             f"<td>{html.escape(c.name)}</td>"
             f"<td>{html.escape(c.headline or '')}</td>"
-            f"<td>{x.title.persona.value}</td>"
-            f"<td>{cls.intent_type.value}</td>"
-            f"<td>{cls.confidence:.2f}</td>"
+            f"<td>{html.escape(c.company or '')}</td>"
+            f"<td>{html.escape(_acct_cell(x))}</td>"
+            f"<td>{html.escape(_signal_cell(x))}</td>"
+            f"<td>{html.escape(route)}</td>"
+            f"<td>{x.title.persona.value}/{cls.intent_type.value} {cls.confidence:.2f}</td>"
             f'<td class="q">"{html.escape(cls.evidence_quote)}"</td>'
-            f"<td>{html.escape(cls.suggested_angle)}</td>"
             "</tr>"
         )
+
+    # account-routing rollups across actionable (surface/review) leads
+    routed = [x for x in leads if x.routing is not None]
+    signals = Counter(x.routing.signal_type.value for x in routed)
+    customer_split = Counter(
+        ("existing customer" if (x.account and x.account.is_customer)
+         else "net-new/prospect" if x.account else "no company")
+        for x in routed
+    )
+    routing_html = (
+        "".join(_bar(k, v, len(routed) or 1) for k, v in sorted(signals.items())) or "<em>none</em>"
+    )
+    customer_html = (
+        "".join(_bar(k, v, len(routed) or 1) for k, v in sorted(customer_split.items())) or "<em>none</em>"
+    )
 
     funnel_html = "".join(
         [
@@ -103,9 +134,14 @@ def render(leads: list[Lead], mode: str) -> str:
 <h2>Intent breakdown</h2>{intent_html}
 <h2>Quality vs golden set</h2>{eval_html}
 
+<h2>Account routing (Salesforce match)</h2>
+<p class="meta">Across actionable (surfaced + review) leads. Synthetic accounts in demo mode; Salesforce API in live.</p>
+<b>Signal type</b>{routing_html}
+<b>Customer vs net-new</b>{customer_html}
+
 <h2>Surfaced leads ({f['surfaced']})</h2>
-<table><tr><th>Name</th><th>Headline</th><th>Persona</th><th>Intent</th><th>Conf</th><th>Evidence (verbatim)</th><th>Suggested angle</th></tr>
-{surfaced_rows or '<tr><td colspan="7"><em>none</em></td></tr>'}
+<table><tr><th>Name</th><th>Headline</th><th>Company</th><th>Salesforce account</th><th>Signal</th><th>Route to</th><th>Persona/Intent</th><th>Evidence (verbatim)</th></tr>
+{surfaced_rows or '<tr><td colspan="8"><em>none</em></td></tr>'}
 </table>
 
 <h2>Business impact</h2>

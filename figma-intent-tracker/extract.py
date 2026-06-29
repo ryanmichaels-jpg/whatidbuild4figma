@@ -11,10 +11,31 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Optional
 
 from apify_run import run_actor
 from schema import Commenter
+
+
+def _company_from_headline(headline: Optional[str]) -> Optional[str]:
+    m = re.search(r"\bat\s+([A-Za-z0-9][\w&.,'\- ]{1,40})", headline or "")
+    return m.group(1).strip(" .|") if m else None
+
+
+def _company(actor: dict) -> Optional[str]:
+    """Best-effort current employer from the profile (current role -> latest experience -> headline)."""
+    cp = actor.get("currentPosition")
+    if isinstance(cp, list) and cp:
+        c = cp[0].get("companyName") or cp[0].get("company")
+        if c:
+            return c
+    exp = actor.get("experience")
+    if isinstance(exp, list) and exp:
+        c = exp[0].get("companyName")
+        if c:
+            return c
+    return _company_from_headline(actor.get("headline") or actor.get("position"))
 
 _DEMO_COMMENTS = os.path.join(os.path.dirname(__file__), "data", "demo_comments.json")
 _LIVE_OUT = os.path.join(os.path.dirname(__file__), "data", "comments-live.json")
@@ -53,10 +74,12 @@ def _map_comment(raw: dict, post_url: Optional[str]) -> Optional[Commenter]:
         )
         headline = actor.get("headline") or actor.get("position") or actor.get("occupation")
         profile_url = actor.get("linkedinUrl") or actor.get("profileUrl") or actor.get("url")
+        company = _company(actor)
     else:
         name = actor or raw.get("name") or "unknown"
         headline = raw.get("headline") or raw.get("occupation")
         profile_url = raw.get("profileUrl") or raw.get("profile_url") or raw.get("url")
+        company = _company_from_headline(headline)
 
     reactions = (raw.get("engagement") or {}).get("reactions")
     reaction = reactions[0].get("type") if isinstance(reactions, list) and reactions else raw.get("reactionType")
@@ -64,6 +87,7 @@ def _map_comment(raw: dict, post_url: Optional[str]) -> Optional[Commenter]:
     return Commenter(
         name=name,
         headline=headline,
+        company=company,
         profile_url=profile_url,
         comment_text=str(text).strip(),
         reaction=reaction,

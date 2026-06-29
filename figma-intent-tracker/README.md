@@ -26,12 +26,15 @@ trust layer around it is the product.
 ```
 DISCOVER  Apify native LinkedIn post-search -> engagement-bait/hand-raiser posts,
           ranked by bait cues in the post body + comment volume
-EXTRACT   Apify post-comments actor -> commenters: name, headline, profileUrl, comment
+EXTRACT   Apify post-comments actor -> commenters: name, headline, company, profileUrl, comment
 FILTER    deterministic ICP title filter -- runs BEFORE the LLM; off-ICP dropped for free
 CLASSIFY  claude-haiku-4-5, schema-constrained -> intent + need + verbatim quote + confidence + angle
 GATE      no surfaced lead without a verbatim evidence quote; ICP + intent + confidence thresholds
+ACCOUNT   match the commenter's company against Salesforce -> expansion-first routing:
+          existing customer + intent = churn/expansion alert to the Account Owner (AE);
+          no account = net-new lead for an SDR. Priority (P0..P3) by account tier + intent.
 NOTIFY    Slack incoming webhook per surfaced lead (human-in-the-loop; never auto-DMs)
-DASHBOARD static HTML: funnel, persona/intent breakdown, precision vs golden, impact (blank)
+DASHBOARD static HTML: funnel, persona/intent breakdown, account routing, precision vs golden, impact (blank)
 ```
 
 The trust layer, concretely:
@@ -53,6 +56,13 @@ The trust layer, concretely:
 - **Monitoring.** `dashboard.py` renders the funnel, persona/intent breakdown,
   and precision vs golden. Business-impact metrics are left blank and marked
   "(confirm with real CRM data)" -- never fabricated.
+- **Expansion-first routing (the PLG motion).** Each actionable lead's company is
+  matched against Salesforce (`accounts.py`). An existing paid customer showing
+  design-tool intent becomes a churn/expansion alert routed to the Account Owner
+  (AE) -- engage the buyer, not the commenter; a company with no account becomes a
+  net-new SDR lead. Priority P0..P3 by account tier + intent. The CRM is a
+  synthetic, clearly-labeled fixture in demo mode; the Salesforce API is the
+  documented live integration point. Real customer data is never fabricated.
 - **Human-in-the-loop.** Surfaces a signal + suggested angle to a rep; never
   auto-DMs a prospect.
 
@@ -99,8 +109,8 @@ stays synthetic; real runs write to gitignored `data/*-live.json`.
 | Quality checks | `gate.py` verbatim gate + `tests/` golden-set eval |
 | Monitoring | `dashboard.py` funnel + persona/intent + precision vs golden |
 | Track adoption/impact | dashboard impact panel (blank pending real CRM data) |
-| Named stack (Anthropic, Slack, SQL-shaped data) | haiku classifier, Slack notify, structured pydantic records |
-| PLG -> enterprise expansion signal | switching-intent on Figma posts, scored against the buyer committee |
+| Named stack (Anthropic, Slack, Salesforce, SQL-shaped data) | haiku classifier, Slack notify, Salesforce account match (`accounts.py`), structured pydantic records |
+| PLG -> enterprise expansion signal | design-tool intent matched to Salesforce accounts -> churn/expansion alert to the AE vs net-new to an SDR |
 
 ## Compliance posture (a feature, not an afterthought)
 
@@ -121,6 +131,7 @@ becoming generic scrape-and-spam.
 ## Stack
 
 Python, pydantic (the trust contract), Anthropic `claude-haiku-4-5` (classifier),
-Apify (LinkedIn post discovery + comment extraction, single provider), Slack
-incoming webhooks, static HTML dashboard. No framework; the orchestration is
-plain code so every step is inspectable.
+Apify (LinkedIn post discovery + comment extraction, single provider), Salesforce
+account match for expansion routing (synthetic fixture in demo; API integration
+point for live), Slack incoming webhooks, static HTML dashboard. No framework; the
+orchestration is plain code so every step is inspectable.

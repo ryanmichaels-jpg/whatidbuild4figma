@@ -12,6 +12,7 @@ import json
 import os
 from collections import Counter
 
+import accounts as accounts_mod
 import classify as classify_mod
 import discover as discover_mod
 import extract as extract_mod
@@ -24,29 +25,35 @@ _GOLDEN = os.path.join(os.path.dirname(__file__), "data", "golden.json")
 
 
 def process(commenter: Commenter, mode: str) -> Lead:
-    """Run one commenter through filter -> (classify) -> gate."""
+    """Run one commenter through filter -> (classify) -> gate -> account match + route."""
     title = classify_title(commenter.headline)
+    cls = None
 
     if title.status in (TitleStatus.excluded, TitleStatus.off_icp):
+        decision = Decision.drop
         reason = (
             f"off-ICP title ({title.matched_keyword})"
             if title.status == TitleStatus.excluded
             else "title present but not a buyer/user persona"
         )
-        return Lead(commenter=commenter, title=title, decision=Decision.drop, reason=reason)
+    elif title.status == TitleStatus.missing:
+        decision = Decision.review
+        reason = "missing title -- routed to human review, not dropped"
+    else:
+        # matched persona -> spend an LLM call
+        cls = classify_mod.classify(commenter, mode)
+        decision, reason = decide(commenter, title, cls)
 
-    if title.status == TitleStatus.missing:
-        return Lead(
-            commenter=commenter,
-            title=title,
-            decision=Decision.review,
-            reason="missing title -- routed to human review, not dropped",
-        )
+    lead = Lead(commenter=commenter, title=title, classification=cls, decision=decision, reason=reason)
 
-    # matched persona -> spend an LLM call
-    cls = classify_mod.classify(commenter, mode)
-    decision, reason = decide(commenter, title, cls)
-    return Lead(commenter=commenter, title=title, classification=cls, decision=decision, reason=reason)
+    # account match + expansion routing only for actionable leads (no CRM lookup on dropped noise)
+    if decision in (Decision.surface, Decision.review):
+        intent = cls.intent_type if cls else None
+        account = accounts_mod.match_account(commenter.company, mode)
+        lead.account = account
+        lead.routing = accounts_mod.route(intent, account, commenter.company)
+
+    return lead
 
 
 def run(mode: str | None = None) -> list[Lead]:

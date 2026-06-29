@@ -2,6 +2,7 @@
   {
     "name": "Maya Chen",
     "headline": "Design Systems Lead at Acme",
+    "company": "Acme",
     "profile_url": "https://www.linkedin.com/in/demo-maya-chen",
     "comment_text": "We're actively evaluating alternatives this quarter -- the pricing change hit hard. What are teams moving to?",
     "reaction": "like",
@@ -12,6 +13,7 @@
   {
     "name": "Devraj Patel",
     "headline": "VP of Product at Northwind",
+    "company": "Northwind",
     "profile_url": "https://www.linkedin.com/in/demo-devraj-patel",
     "comment_text": "Evaluating a switch for our 200-seat org. We need SSO and dev handoff parity before we commit.",
     "reaction": "insightful",
@@ -22,6 +24,7 @@
   {
     "name": "Lena Fischer",
     "headline": "Product Designer at Brightloom",
+    "company": "Brightloom",
     "profile_url": "https://www.linkedin.com/in/demo-lena-fischer",
     "comment_text": "guide please -- we're comparing options for our team this month",
     "reaction": "like",
@@ -32,6 +35,7 @@
   {
     "name": "Tom Becker",
     "headline": "UX Researcher at Glasshouse",
+    "company": "Glasshouse",
     "profile_url": "https://www.linkedin.com/in/demo-tom-becker",
     "comment_text": "Curious what's out there these days, might take a look at some point.",
     "reaction": "like",
@@ -42,6 +46,7 @@
   {
     "name": "Priya Nair",
     "headline": "Head of Design at Vaultline",
+    "company": "Vaultline",
     "profile_url": "https://www.linkedin.com/in/demo-priya-nair",
     "comment_text": "interested",
     "reaction": "like",
@@ -122,6 +127,7 @@
   {
     "name": "Jordan Avery",
     "headline": "Founder & Indie Hacker | Building a SaaS for creators",
+    "company": "Avery Labs",
     "profile_url": "https://www.linkedin.com/in/demo-jordan-avery",
     "comment_text": "Yes please send the guide -- I'm building my app's UI right now and need a faster way to design screens.",
     "reaction": "like",
