@@ -67,12 +67,20 @@ MODE=live python pipeline.py
 ```
 
 Live mode needs `APIFY_TOKEN` (discovery + comment extraction) and
-`ANTHROPIC_API_KEY` (classifier). Discovery is cookie-free (Apify Google Search
-Scraper over `site:linkedin.com/posts "<keyword>"`). Comment extraction is
-authenticated: LinkedIn has no public API, so the comments actor needs a LinkedIn
-session cookie (`LINKEDIN_LI_AT`) -- without it the actor runs but returns zero
-comments. `SLACK_WEBHOOK_URL` is optional (without it, surfaced leads print their
-payload). Actor slugs are env vars (`APIFY_POST_SEARCH_ACTOR`, `APIFY_ACTOR`).
+`ANTHROPIC_API_KEY` (classifier). Both Apify actors are cookie-free -- discovery
+via the Google Search Scraper over `site:linkedin.com/posts "<keyword>"`, and
+comment extraction via a managed-auth comments actor -- so no LinkedIn session
+cookie is required. `SLACK_WEBHOOK_URL` is optional (without it, surfaced leads
+print their payload). Actor slugs are env vars (`APIFY_POST_SEARCH_ACTOR`,
+`APIFY_ACTOR`). Extraction drops the post author and dedupes to one lead per
+person before classifying.
+
+This pipeline has been run end-to-end on real LinkedIn posts: discovery returned
+real Figma-switching posts, extraction pulled real commenters cookie-free, the
+ICP filter correctly rejected off-ICP commenters (e.g. EV-charging engineers on a
+design thread), and the verbatim gate caught real LLM hallucinations (confident
+classifications whose evidence quote was not an exact substring). Committed data
+stays synthetic; real runs write to gitignored `data/*-live.json`.
 
 ## JD mapping
 

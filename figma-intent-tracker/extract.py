@@ -1,9 +1,11 @@
 """EXTRACT stage: pull commenters from intent posts.
 
-Demo mode reads committed synthetic commenters. Live mode calls an Apify LinkedIn
-post-comments actor (slug from APIFY_ACTOR), maps its output onto the Commenter
-trust-contract model, and writes the raw scrape to data/comments-live.json --
-which is gitignored, so real people's data never lands in the repo.
+Demo mode reads committed synthetic commenters. Live mode calls a cookie-free
+Apify LinkedIn post-comments actor (slug from APIFY_ACTOR; default
+harvestapi~linkedin-post-comments, which authenticates server-side so no LinkedIn
+session cookie is required), maps its output onto the Commenter trust-contract
+model, and writes the raw scrape to data/comments-live.json -- which is
+gitignored, so real people's data never lands in the repo.
 """
 from __future__ import annotations
 
@@ -17,11 +19,8 @@ from schema import Commenter
 _DEMO_COMMENTS = os.path.join(os.path.dirname(__file__), "data", "demo_comments.json")
 _LIVE_OUT = os.path.join(os.path.dirname(__file__), "data", "comments-live.json")
 
-APIFY_ACTOR = os.environ.get("APIFY_ACTOR", "scrapier~linkedin-post-comments-scraper")
-# Authenticated extraction needs the operator's LinkedIn session cookie. Without it
-# the actor runs but returns zero comments (LinkedIn has no public API).
-LINKEDIN_LI_AT = os.environ.get("LINKEDIN_LI_AT", "")
-RESULT_LIMIT_PER_POST = int(os.environ.get("APIFY_COMMENT_LIMIT", "30"))
+APIFY_ACTOR = os.environ.get("APIFY_ACTOR", "harvestapi~linkedin-post-comments")
+COMMENT_LIMIT = int(os.environ.get("APIFY_COMMENT_LIMIT", "40"))
 
 
 def extract_demo() -> list[Commenter]:
@@ -30,57 +29,103 @@ def extract_demo() -> list[Commenter]:
 
 
 def _map_comment(raw: dict, post_url: Optional[str]) -> Optional[Commenter]:
-    """Map one Apify comment record to a Commenter. Returns None if no comment text."""
-    text = raw.get("commentText") or raw.get("text") or raw.get("comment")
+    """Map one Apify comment record to a Commenter. Returns None if no comment text.
+
+    Handles the harvestapi shape (commentary + nested actor) and falls back to the
+    flatter field names other comment actors use.
+    """
+    text = (
+        raw.get("commentary")
+        or raw.get("commentText")
+        or raw.get("text")
+        or raw.get("comment")
+    )
     if not text or not str(text).strip():
         return None
-    author = raw.get("author")
-    if isinstance(author, dict):
-        name = author.get("name") or author.get("fullName") or "unknown"
-        headline = author.get("headline") or author.get("occupation")
-        profile_url = author.get("profileUrl") or author.get("profile_url") or author.get("url")
+
+    actor = raw.get("actor") or raw.get("author")
+    if isinstance(actor, dict):
+        name = (
+            actor.get("name")
+            or " ".join(p for p in (actor.get("firstName"), actor.get("lastName")) if p)
+            or actor.get("fullName")
+            or "unknown"
+        )
+        headline = actor.get("headline") or actor.get("position") or actor.get("occupation")
+        profile_url = actor.get("linkedinUrl") or actor.get("profileUrl") or actor.get("url")
     else:
-        name = author or raw.get("name") or "unknown"
+        name = actor or raw.get("name") or "unknown"
         headline = raw.get("headline") or raw.get("occupation")
         profile_url = raw.get("profileUrl") or raw.get("profile_url") or raw.get("url")
+
+    reactions = (raw.get("engagement") or {}).get("reactions")
+    reaction = reactions[0].get("type") if isinstance(reactions, list) and reactions else raw.get("reactionType")
+
     return Commenter(
         name=name,
         headline=headline,
         profile_url=profile_url,
         comment_text=str(text).strip(),
-        reaction=raw.get("reactionType") or raw.get("reaction"),
-        timestamp=raw.get("timestamp") or raw.get("createdAt"),
+        reaction=reaction,
+        timestamp=raw.get("createdAt") or raw.get("timestamp"),
         post_url=raw.get("postUrl") or post_url,
         source="live",
     )
 
 
+def _is_author(raw: dict) -> bool:
+    actor = raw.get("actor")
+    return isinstance(actor, dict) and bool(actor.get("author"))
+
+
+def map_raw_items(raw_items: list[dict], default_post: Optional[str] = None) -> list[Commenter]:
+    """Map raw Apify records to Commenters, dropping the post author and deduping
+    to one lead per person (keeping their longest comment -- the most signal).
+
+    Pure transform, so the same logic runs on a fresh scrape or a cached raw file.
+    """
+    mapped: list[Commenter] = []
+    for raw in raw_items:
+        if _is_author(raw):
+            continue  # the post author replying to their own thread is not a lead
+        c = _map_comment(raw, default_post)
+        if c:
+            mapped.append(c)
+        for reply in raw.get("replies", []) or []:
+            if _is_author(reply):
+                continue
+            r = _map_comment(reply, raw.get("postUrl") or default_post)
+            if r:
+                mapped.append(r)
+
+    # dedupe by profile_url, keeping the longest comment per person
+    best: dict[str, Commenter] = {}
+    no_url: list[Commenter] = []
+    for c in mapped:
+        if not c.profile_url:
+            no_url.append(c)
+            continue
+        prev = best.get(c.profile_url)
+        if prev is None or len(c.comment_text) > len(prev.comment_text):
+            best[c.profile_url] = c
+    return list(best.values()) + no_url
+
+
 def extract_live(post_urls: list[str]) -> list[Commenter]:
     body = {
-        "startUrls": post_urls,
-        "resultLimitPerPost": RESULT_LIMIT_PER_POST,
-        "profileScraperMode": "full",  # need headline + profileUrl for the title filter
+        "posts": post_urls,
+        "maxItems": COMMENT_LIMIT,
         "scrapeReplies": True,
-        "proxyConfiguration": {"useApifyProxy": True},
+        "profileScraperMode": "main",  # need headline + profileUrl for the title filter
     }
-    if LINKEDIN_LI_AT:
-        body["liAt"] = LINKEDIN_LI_AT
     raw_items = run_actor(APIFY_ACTOR, body)
 
     # provenance: keep the raw scrape locally (gitignored), never committed
     with open(_LIVE_OUT, "w", encoding="utf-8") as fh:
         json.dump(raw_items, fh, indent=2)
 
-    commenters = []
-    for raw in raw_items:
-        mapped = _map_comment(raw, post_urls[0] if len(post_urls) == 1 else None)
-        if mapped:
-            commenters.append(mapped)
-        for reply in raw.get("replies", []) or []:
-            mapped_reply = _map_comment(reply, raw.get("postUrl"))
-            if mapped_reply:
-                commenters.append(mapped_reply)
-    return commenters
+    default_post = post_urls[0] if len(post_urls) == 1 else None
+    return map_raw_items(raw_items, default_post)
 
 
 def extract(mode: str, posts: list[dict]) -> list[Commenter]:

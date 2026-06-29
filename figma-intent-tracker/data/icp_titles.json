@@ -3,11 +3,12 @@
   "include": [
     { "keywords": ["design systems lead", "design systems", "design technologist"], "persona": "champion" },
     { "keywords": ["designops", "design ops", "design operations"], "persona": "champion" },
-    { "keywords": ["head of design", "design director", "director of design", "director of product design"], "persona": "champion" },
+    { "keywords": ["head of design", "head of ux", "design director", "director of design", "director of product design"], "persona": "champion" },
+    { "keywords": ["design lead", "ux lead", "product design lead", "lead designer", "principal designer", "staff designer", "design manager"], "persona": "champion" },
     { "keywords": ["vp of design", "chief design officer", "cdo"], "persona": "economic_buyer" },
     { "keywords": ["cpo", "chief product officer", "vp of product", "head of product", "director of product"], "persona": "economic_buyer" },
     { "keywords": ["vp of engineering", "head of engineering", "director of engineering", "engineering manager"], "persona": "economic_buyer" },
-    { "keywords": ["product designer", "ux designer", "ui designer", "ux researcher", "design engineer"], "persona": "user" },
+    { "keywords": ["product designer", "ux designer", "ui designer", "ux researcher", "design engineer", "ui/ux", "ux/ui", "web designer"], "persona": "user" },
     { "keywords": ["frontend", "front-end", "software engineer"], "persona": "user" },
     { "keywords": ["head of it", "it admin", "ciso", "head of security", "procurement"], "persona": "gatekeeper" }
   ],

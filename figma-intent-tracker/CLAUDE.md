@@ -33,9 +33,11 @@ generic scrape-and-spam pipeline. Hold these invariants:
    `data/*-live.json`, which is gitignored. Committed fixtures are synthetic and
    labeled. The golden set in `data/golden.json` is the eval's ground truth.
 
-9. **Apify is the single scraping provider** (post discovery + comment extraction).
-   Actor slugs are env vars (`APIFY_POST_SEARCH_ACTOR`, `APIFY_ACTOR`) so the source
-   stays configurable and auditable.
+9. **Apify is the single scraping provider** (post discovery + comment extraction),
+   and both actors are cookie-free (managed server-side auth) -- no LinkedIn session
+   cookie. Actor slugs are env vars (`APIFY_POST_SEARCH_ACTOR`, `APIFY_ACTOR`) so the
+   source stays configurable and auditable. Extraction drops the post author and
+   dedupes to one lead per person (`extract.map_raw_items`) before any LLM call.
 
 10. **Demo mode must stay zero-credential and green.** `MODE=demo python pipeline.py`
     and `pytest` must run with no keys. If you change decision logic, update the

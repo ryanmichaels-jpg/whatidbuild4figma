@@ -114,7 +114,8 @@ def classification_json_schema() -> dict:
                 "type": "string",
                 "description": "A verbatim substring copied exactly from the comment. Do not paraphrase or invent.",
             },
-            "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+            # range enforced by pydantic after parsing; the API rejects min/max on numbers
+            "confidence": {"type": "number", "description": "Confidence from 0.0 to 1.0."},
             "suggested_angle": {
                 "type": "string",
                 "description": "One-line rep talking point grounded only in what the comment says.",
