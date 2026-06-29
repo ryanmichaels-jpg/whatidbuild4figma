@@ -1,9 +1,14 @@
 # Figma LinkedIn Intent Miner
 
-Find LinkedIn "hand-raiser" posts about leaving Figma ("we're replacing Figma",
-"comment and I'll DM my migration guide", "what should we switch to?"), pull the
-commenters, and turn them into a verified, ICP-filtered lead queue for a rep --
-with a suggested angle and a verbatim evidence quote for each surfaced lead.
+Find LinkedIn "hand-raiser" / lead-magnet posts where the commenters are
+in-market for a design tool -- people trying to do what Figma does (often reaching
+for AI tools like Claude), or asking "comment and I'll DM the guide". Pull the
+commenters and turn them into a verified, ICP-filtered lead queue for a rep, with
+a suggested angle and a verbatim evidence quote for each surfaced lead.
+
+The target is design-tool demand, not Figma-churn specifically: a post does not
+need to mention Figma. Discovery looks for the demand signal; the ICP title filter
+and the gate decide who is actually worth a rep's time.
 
 ## Problem
 
@@ -32,8 +37,10 @@ DASHBOARD static HTML: funnel, persona/intent breakdown, precision vs golden, im
 The trust layer, concretely:
 
 - **Constrain outputs.** A deterministic ICP title filter (`titles.py`) runs
-  before any LLM call -- only buyer/user personas reach the model, so off-ICP
-  commenters cost zero tokens. The classifier is schema-constrained
+  before any LLM call -- only ICP personas reach the model (design buyers/users,
+  plus a looser `builder` prospect tier for founders/PMs/indie/no-code builders),
+  so off-ICP commenters cost zero tokens. Builders never auto-surface: the gate
+  routes them to human review. The classifier is schema-constrained
   (`output_config` json_schema) so it cannot omit a required field.
 - **Trust contract.** No lead is surfaced without a verbatim evidence quote.
   `gate.py` checks the quote is an exact substring of the real comment and drops

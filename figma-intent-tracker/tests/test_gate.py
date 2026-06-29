@@ -54,6 +54,15 @@ def test_noise_drops():
     assert d == Decision.drop
 
 
+def test_builder_routes_to_review_not_surface():
+    # a strong builder signal must NOT auto-surface -- a human qualifies the prospect
+    c = _commenter("building my app's UI right now")
+    builder_title = TitleResult(status=TitleStatus.matched, persona=Persona.builder, matched_keyword="founder")
+    d, reason = decide(c, builder_title, _cls(IntentType.active_need, 0.9, "building my app's UI right now"))
+    assert d == Decision.review
+    assert "builder" in reason
+
+
 def test_hallucinated_quote_is_dropped_even_at_high_confidence():
     # the gate must override a confident classification when the quote is not real
     c = _commenter("We migrated about half our teams already this spring.")

@@ -19,14 +19,19 @@ from typing import Optional
 
 from apify_run import run_actor
 
-# LinkedIn search queries shaped to surface Figma switching + lead-magnet posts.
+# LinkedIn search queries shaped to surface lead-magnet / hand-raiser posts where
+# the COMMENTERS are in-market for a design/UI tool -- people trying to do what
+# Figma does (often via Claude / AI), asking for a guide. We do NOT require the
+# word "Figma": the goal is design-tool demand, not Figma-churn specifically.
 DISCOVERY_QUERIES = [
-    "comment and I'll send Figma alternative",
-    "comment below Figma alternative guide",
-    "free Figma alternative",
-    "leaving Figma what should we switch to",
-    "replacing Figma",
-    "do what Figma does",
+    "comment and I'll send you the guide design UI",
+    "comment guide Claude design",
+    "build your UI with Claude code comment",
+    "design in Claude comment below guide",
+    "how to design app UI without Figma comment",
+    "I'll DM you the prompts to design comment",
+    "vibe code your UI design comment guide",
+    "AI design tool comment below guide",
 ]
 
 # Cues that the post BODY is engagement bait (author harvesting commenters).

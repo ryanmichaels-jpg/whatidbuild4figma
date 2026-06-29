@@ -5,7 +5,10 @@ generic scrape-and-spam pipeline. Hold these invariants:
 
 1. **Deterministic ICP filter runs BEFORE any LLM call.** `titles.py` decides who
    reaches the model. Off-ICP commenters must never cost a token. Adding intent
-   logic into the LLM step that bypasses the filter is a regression.
+   logic into the LLM step that bypasses the filter is a regression. Personas:
+   champion / economic_buyer / user / gatekeeper auto-surface when the gate passes;
+   `builder` (founders/PMs/indie/no-code) is a looser prospect tier that ALWAYS
+   routes to human review, never auto-surface.
 
 2. **No surfaced lead without a verbatim evidence quote.** `gate.py` requires the
    classifier's `evidence_quote` to be an exact substring of the real comment.

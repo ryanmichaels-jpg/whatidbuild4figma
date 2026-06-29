@@ -10,7 +10,8 @@
     { "keywords": ["vp of engineering", "head of engineering", "director of engineering", "engineering manager"], "persona": "economic_buyer" },
     { "keywords": ["product designer", "ux designer", "ui designer", "ux researcher", "design engineer", "ui/ux", "ux/ui", "web designer"], "persona": "user" },
     { "keywords": ["frontend", "front-end", "software engineer"], "persona": "user" },
-    { "keywords": ["head of it", "it admin", "ciso", "head of security", "procurement"], "persona": "gatekeeper" }
+    { "keywords": ["head of it", "it admin", "ciso", "head of security", "procurement"], "persona": "gatekeeper" },
+    { "keywords": ["founder", "co-founder", "entrepreneur", "solopreneur", "indie", "no-code", "nocode", "no code", "product manager", "ceo", "maker"], "persona": "builder" }
   ],
   "exclude": ["student", "recruiter", "talent acquisition", "open to work", "job seeker"],
   "exclude_tokens": ["intern"]

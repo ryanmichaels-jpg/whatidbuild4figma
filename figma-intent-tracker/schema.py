@@ -14,12 +14,18 @@ from pydantic import BaseModel, Field
 
 
 class Persona(str, Enum):
-    """Figma buyer-committee tiers (from public case studies + enterprise framing)."""
+    """Figma buyer-committee tiers (from public case studies + enterprise framing).
+
+    `builder` is a looser prospect tier -- founders/PMs/indie/no-code builders who
+    are in-market for a design tool but aren't a classic design role. Builders never
+    auto-surface; the gate routes them to human review.
+    """
 
     champion = "champion"
     economic_buyer = "economic_buyer"
     user = "user"
     gatekeeper = "gatekeeper"
+    builder = "builder"
 
 
 class IntentType(str, Enum):
@@ -107,7 +113,7 @@ def classification_json_schema() -> dict:
             "intent_type": {
                 "type": "string",
                 "enum": [e.value for e in IntentType],
-                "description": "active_need: explicitly looking to switch now; evaluating: comparing options; curious: passive interest; noise: off-topic/praise.",
+                "description": "active_need: actively building/seeking a design or UI workflow now; evaluating: comparing or trying design/AI tools; curious: passive interest, no project; noise: praise/off-topic/not about doing design work.",
             },
             "need": {"type": "string", "description": "One sentence summarizing the stated need."},
             "evidence_quote": {

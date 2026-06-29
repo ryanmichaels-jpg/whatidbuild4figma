@@ -48,5 +48,12 @@
     "evidence_quote": "we are leaving Figma next month",
     "confidence": 0.8,
     "suggested_angle": "Offer migration support."
+  },
+  "https://www.linkedin.com/in/demo-jordan-avery": {
+    "intent_type": "active_need",
+    "need": "Actively building an app UI and wants a faster way to design screens.",
+    "evidence_quote": "building my app's UI right now",
+    "confidence": 0.8,
+    "suggested_angle": "Position Figma (Make + Dev Mode) as the fast path from idea to designed, buildable UI screens."
   }
 }

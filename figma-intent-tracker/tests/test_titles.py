@@ -33,3 +33,11 @@ def test_missing_title_routes_to_review_not_drop():
 
 def test_present_but_unrecognized_is_off_icp():
     assert classify_title("Marketing Manager at Foobar").status == TitleStatus.off_icp
+
+
+def test_builder_prospect_tier():
+    assert classify_title("Founder & Indie Hacker").persona == Persona.builder
+    assert classify_title("Product Manager at Acme").persona == Persona.builder
+    assert classify_title("No-code builder | Solopreneur").persona == Persona.builder
+    # a design title still wins over builder (design rules are checked first)
+    assert classify_title("Founder & Product Designer").persona == Persona.user

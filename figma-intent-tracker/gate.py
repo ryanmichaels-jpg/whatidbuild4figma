@@ -7,7 +7,7 @@ model was confident. Same rule across every Figma artifact in this portfolio.
 """
 from __future__ import annotations
 
-from schema import Classification, Commenter, Decision, IntentType, TitleResult
+from schema import Classification, Commenter, Decision, IntentType, Persona, TitleResult
 
 CONFIDENCE_THRESHOLD = 0.6
 SURFACE_INTENTS = {IntentType.active_need, IntentType.evaluating}
@@ -33,6 +33,13 @@ def decide(commenter: Commenter, title: TitleResult, cls: Classification) -> tup
 
     persona = title.persona.value if title.persona else "unknown"
     if cls.intent_type in SURFACE_INTENTS and cls.confidence >= CONFIDENCE_THRESHOLD:
+        # builders are a looser prospect tier: strong signal, but a human qualifies
+        # them before any outreach -- never auto-surfaced.
+        if title.persona == Persona.builder:
+            return (
+                Decision.review,
+                f"builder/prospect with {cls.intent_type.value} intent -- human review before outreach",
+            )
         return (
             Decision.surface,
             f"{persona} with {cls.intent_type.value} intent at confidence {cls.confidence:.2f}",

@@ -118,5 +118,15 @@
     "timestamp": "2026-06-23T15:00:00Z",
     "post_url": "https://www.linkedin.com/posts/demo-post-pricing-change",
     "source": "demo"
+  },
+  {
+    "name": "Jordan Avery",
+    "headline": "Founder & Indie Hacker | Building a SaaS for creators",
+    "profile_url": "https://www.linkedin.com/in/demo-jordan-avery",
+    "comment_text": "Yes please send the guide -- I'm building my app's UI right now and need a faster way to design screens.",
+    "reaction": "like",
+    "timestamp": "2026-06-23T15:30:00Z",
+    "post_url": "https://www.linkedin.com/posts/demo-post-migration-guide",
+    "source": "demo"
   }
 ]

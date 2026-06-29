@@ -23,9 +23,9 @@ def test_demo_matches_golden_exactly():
 def test_demo_funnel_counts():
     leads = run("demo")
     f = funnel(leads)
-    assert f["extracted"] == 12
+    assert f["extracted"] == 13
     assert f["surfaced"] == 3
-    assert f["review"] == 3
+    assert f["review"] == 4  # includes the builder/prospect routed to review
     assert f["dropped"] == 6
 
 

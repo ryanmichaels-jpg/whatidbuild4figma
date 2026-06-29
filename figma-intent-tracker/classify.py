@@ -18,11 +18,17 @@ CLASSIFIER_MODEL = os.environ.get("CLASSIFIER_MODEL", "claude-haiku-4-5")
 _RECORDED = os.path.join(os.path.dirname(__file__), "data", "recorded_classifications.json")
 
 SYSTEM_PROMPT = (
-    "You classify LinkedIn comments for switching intent away from Figma. "
+    "You classify LinkedIn comments to find people in the market for a design or "
+    "UI-prototyping tool. The comments are on posts about designing and building "
+    "interfaces (often with AI tools like Claude). A strong lead is someone "
+    "actively trying to design, build a UI, or set up a design workflow -- they "
+    "are a potential design-tool buyer or user. "
     "Return only the requested JSON. The evidence_quote MUST be copied verbatim "
     "from the comment -- an exact substring, no paraphrasing, no invention. "
-    "If there is no genuine switching signal, use intent_type 'noise'. "
-    "Ground need and suggested_angle only in what the comment actually says."
+    "If the comment is praise, off-topic, or not about doing design work, use "
+    "intent_type 'noise'. Ground need and suggested_angle only in what the comment "
+    "actually says; suggested_angle is a one-line angle for how Figma (design, "
+    "prototyping, Dev Mode, AI/Make) fits the stated need."
 )
 
 
@@ -48,7 +54,7 @@ def classify_live(commenter: Commenter) -> Classification:
     user = (
         f"Comment: {commenter.comment_text!r}\n"
         f"Author headline: {commenter.headline or 'unknown'}\n"
-        "Classify the switching intent."
+        "Classify this commenter's design-tool intent."
     )
     resp = client.messages.create(
         model=CLASSIFIER_MODEL,
