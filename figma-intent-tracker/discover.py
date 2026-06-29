@@ -1,15 +1,18 @@
 """DISCOVER stage: find LinkedIn intent-post URLs.
 
-Apify-only: demo mode reads committed synthetic posts; live mode runs an Apify
-LinkedIn post-search actor (slug from APIFY_POST_SEARCH_ACTOR) over the intent
-keywords. Keeping discovery and extraction on a single provider means one
-credential and one configurable, auditable scraping source.
+Apify-only and cookie-free: live mode runs the Apify Google Search Scraper over
+`site:linkedin.com/posts "<keyword>"` queries and keeps the LinkedIn post URLs it
+returns. This avoids needing a LinkedIn session cookie just to discover posts --
+the cookie is only required downstream for authenticated comment extraction.
+Demo mode reads committed synthetic posts. Actor slug is env-configurable.
 """
 from __future__ import annotations
 
 import json
 import os
 from typing import Optional
+
+from apify_run import run_actor
 
 INTENT_KEYWORDS = [
     "Figma alternative",
@@ -22,10 +25,8 @@ INTENT_KEYWORDS = [
 
 _DEMO_POSTS = os.path.join(os.path.dirname(__file__), "data", "demo_posts.json")
 
-APIFY_BASE = "https://api.apify.com/v2/acts"
-APIFY_POST_SEARCH_ACTOR = os.environ.get(
-    "APIFY_POST_SEARCH_ACTOR", "curious_coder~linkedin-post-search-scraper"
-)
+# Cookie-free discovery. Override with an authenticated LinkedIn post-search actor if preferred.
+APIFY_POST_SEARCH_ACTOR = os.environ.get("APIFY_POST_SEARCH_ACTOR", "apify~google-search-scraper")
 
 
 def discover_demo() -> list[dict]:
@@ -33,23 +34,28 @@ def discover_demo() -> list[dict]:
         return json.load(fh)
 
 
-def discover_live(keywords: Optional[list[str]] = None, limit: int = 10) -> list[dict]:
-    import requests
+def _post_url(url: str) -> bool:
+    return "linkedin.com/posts/" in url
 
+
+def discover_live(keywords: Optional[list[str]] = None, limit: int = 10) -> list[dict]:
     keywords = keywords or INTENT_KEYWORDS
-    token = os.environ["APIFY_TOKEN"]
-    actor = APIFY_POST_SEARCH_ACTOR.replace("/", "~")
-    url = f"{APIFY_BASE}/{actor}/run-sync-get-dataset-items?token={token}"
-    body = {"queries": keywords, "maxItems": limit}
-    resp = requests.post(url, json=body, timeout=180)
-    resp.raise_for_status()
+    queries = "\n".join(f'site:linkedin.com/posts "{kw}"' for kw in keywords)
+    body = {
+        "queries": queries,
+        "resultsPerPage": limit,
+        "maxPagesPerQuery": 1,
+        "countryCode": "us",
+    }
+    items = run_actor(APIFY_POST_SEARCH_ACTOR, body)
 
     seen, posts = set(), []
-    for it in resp.json():
-        post_url = it.get("url") or it.get("postUrl") or it.get("link")
-        if post_url and post_url not in seen:
-            seen.add(post_url)
-            posts.append({"url": post_url, "title": it.get("text") or it.get("title") or "", "keyword": None})
+    for item in items:
+        for row in item.get("organicResults", []) or []:
+            url = (row.get("url") or "").split("?")[0]
+            if url and _post_url(url) and url not in seen:
+                seen.add(url)
+                posts.append({"url": url, "title": row.get("title") or row.get("description") or "", "keyword": None})
     return posts
 
 

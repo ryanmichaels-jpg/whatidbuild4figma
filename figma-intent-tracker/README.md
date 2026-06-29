@@ -66,10 +66,13 @@ export $(grep -v '^#' .env | xargs)
 MODE=live python pipeline.py
 ```
 
-Live mode needs `APIFY_TOKEN` (both discovery and comment extraction) and
-`ANTHROPIC_API_KEY` (classifier); `SLACK_WEBHOOK_URL` is optional (without it,
-surfaced leads print their payload). Actor slugs are env vars
-(`APIFY_POST_SEARCH_ACTOR`, `APIFY_ACTOR`).
+Live mode needs `APIFY_TOKEN` (discovery + comment extraction) and
+`ANTHROPIC_API_KEY` (classifier). Discovery is cookie-free (Apify Google Search
+Scraper over `site:linkedin.com/posts "<keyword>"`). Comment extraction is
+authenticated: LinkedIn has no public API, so the comments actor needs a LinkedIn
+session cookie (`LINKEDIN_LI_AT`) -- without it the actor runs but returns zero
+comments. `SLACK_WEBHOOK_URL` is optional (without it, surfaced leads print their
+payload). Actor slugs are env vars (`APIFY_POST_SEARCH_ACTOR`, `APIFY_ACTOR`).
 
 ## JD mapping
 

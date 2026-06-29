@@ -11,13 +11,17 @@ import json
 import os
 from typing import Optional
 
+from apify_run import run_actor
 from schema import Commenter
 
 _DEMO_COMMENTS = os.path.join(os.path.dirname(__file__), "data", "demo_comments.json")
 _LIVE_OUT = os.path.join(os.path.dirname(__file__), "data", "comments-live.json")
 
-APIFY_BASE = "https://api.apify.com/v2/acts"
 APIFY_ACTOR = os.environ.get("APIFY_ACTOR", "scrapier~linkedin-post-comments-scraper")
+# Authenticated extraction needs the operator's LinkedIn session cookie. Without it
+# the actor runs but returns zero comments (LinkedIn has no public API).
+LINKEDIN_LI_AT = os.environ.get("LINKEDIN_LI_AT", "")
+RESULT_LIMIT_PER_POST = int(os.environ.get("APIFY_COMMENT_LIMIT", "30"))
 
 
 def extract_demo() -> list[Commenter]:
@@ -52,15 +56,16 @@ def _map_comment(raw: dict, post_url: Optional[str]) -> Optional[Commenter]:
 
 
 def extract_live(post_urls: list[str]) -> list[Commenter]:
-    import requests
-
-    token = os.environ["APIFY_TOKEN"]
-    actor = APIFY_ACTOR.replace("/", "~")
-    url = f"{APIFY_BASE}/{actor}/run-sync-get-dataset-items?token={token}"
-    body = {"postUrls": post_urls, "profileScraperMode": "full"}
-    resp = requests.post(url, json=body, timeout=300)
-    resp.raise_for_status()
-    raw_items = resp.json()
+    body = {
+        "startUrls": post_urls,
+        "resultLimitPerPost": RESULT_LIMIT_PER_POST,
+        "profileScraperMode": "full",  # need headline + profileUrl for the title filter
+        "scrapeReplies": True,
+        "proxyConfiguration": {"useApifyProxy": True},
+    }
+    if LINKEDIN_LI_AT:
+        body["liAt"] = LINKEDIN_LI_AT
+    raw_items = run_actor(APIFY_ACTOR, body)
 
     # provenance: keep the raw scrape locally (gitignored), never committed
     with open(_LIVE_OUT, "w", encoding="utf-8") as fh:
