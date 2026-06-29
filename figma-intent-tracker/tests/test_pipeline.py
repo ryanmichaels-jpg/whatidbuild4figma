@@ -1,8 +1,8 @@
 import json
 import os
 
-from pipeline import funnel, precision_vs_golden, run
-from schema import Decision
+from pipeline import funnel, precision_vs_golden, run, run_with_posts
+from schema import Decision, PostType
 
 _GOLDEN = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "golden.json")
 
@@ -49,3 +49,12 @@ def test_eval_is_perfect_on_golden():
     prec = precision_vs_golden(leads)
     assert prec["accuracy"] == 1.0
     assert prec["surface_precision"] == 1.0
+
+
+def test_offtopic_post_is_dropped_before_mining():
+    leads, post_results = run_with_posts("demo")
+    off = post_results["https://www.linkedin.com/posts/demo-post-offtopic"]
+    assert off.post_type == PostType.off_topic and not off.qualifies
+    # the ICP designer who commented on the off-topic post never becomes a lead
+    assert not any(l.commenter.name == "Pat Quinn" for l in leads)
+    assert all(l.post_type in (PostType.lead_magnet, PostType.tool_question) for l in leads)

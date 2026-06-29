@@ -3,12 +3,25 @@
 The agent is small; the trust layer is the product. Do not let this become a
 generic scrape-and-spam pipeline. Hold these invariants:
 
+0. **Post type is the first gate.** `posttype.py` classifies each post before any
+   comment is mined. Only `lead_magnet` / `tool_question` / `tool_comparison` qualify
+   (`QUALIFYING_POST_TYPES`); showcases and off_topic posts are dropped -- never
+   scrape their comments. The post must be about design/build TOOLING (names tools or
+   asks what tools others use), not generic "design." The comment classifier is
+   conditioned on the post type (a short comment is a hand-raise on a lead_magnet,
+   noise on a hype post).
+
 1. **Deterministic ICP filter runs BEFORE any LLM call.** `titles.py` decides who
    reaches the model. Off-ICP commenters must never cost a token. Adding intent
    logic into the LLM step that bypasses the filter is a regression. Personas:
    champion / economic_buyer / user / gatekeeper auto-surface when the gate passes;
    `builder` (founders/PMs/indie/no-code) is a looser prospect tier that ALWAYS
    routes to human review, never auto-surface.
+
+1a. **Verification backs the gate.** `verify.py` runs after the gate and downgrades a
+   surfaced lead whose evidence quote reads as praise with no tooling signal. The gate
+   proves the quote is REAL (verbatim); verify guards that the quote JUSTIFIES the
+   label. Keep it deterministic so it runs zero-cred.
 
 2. **No surfaced lead without a verbatim evidence quote.** `gate.py` requires the
    classifier's `evidence_quote` to be an exact substring of the real comment.

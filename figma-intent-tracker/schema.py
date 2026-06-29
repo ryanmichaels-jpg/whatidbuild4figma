@@ -48,6 +48,23 @@ class TitleStatus(str, Enum):
     missing = "missing"      # no headline -> route to human review, never a silent drop
 
 
+class PostType(str, Enum):
+    """What kind of post this is -- decided BEFORE mining its comments.
+
+    Only the first three qualify as lead sources: there the commenters reveal their
+    tooling. Showcases/tutorials draw praise, off_topic posts aren't about tooling.
+    """
+
+    lead_magnet = "lead_magnet"        # "comment 'guide' and I'll send it" -> commenting = hand-raise
+    tool_question = "tool_question"    # "what are you using instead of X?"
+    tool_comparison = "tool_comparison"  # "Figma Motion vs After Effects?"
+    showcase = "showcase"              # "here's how I built X" -> mostly praise, not lead-worthy
+    off_topic = "off_topic"            # not about design/build tooling at all
+
+
+QUALIFYING_POST_TYPES = {PostType.lead_magnet, PostType.tool_question, PostType.tool_comparison}
+
+
 class PlanTier(str, Enum):
     """Figma account plan, from Salesforce."""
 
@@ -66,6 +83,16 @@ class SignalType(str, Enum):
     upsell = "upsell"           # PLG free/pro customer to move up a tier
     net_new = "net_new"         # company not a customer -> new logo
     enrich = "enrich"           # no company captured -> enrich before routing
+
+
+class PostClassification(BaseModel):
+    """Schema-constrained post-type judgment. Decides if a post is worth mining."""
+
+    post_type: PostType
+    qualifies: bool                     # convenience: post_type in QUALIFYING_POST_TYPES
+    tools_mentioned: list[str] = []
+    reason: str
+    source: str = "demo"
 
 
 class Commenter(BaseModel):
@@ -132,13 +159,15 @@ class Routing(BaseModel):
 
 
 class Lead(BaseModel):
-    """A commenter after the full pipeline: title filter -> (classify) -> gate -> account match."""
+    """A commenter after the full pipeline: post-type -> title -> (classify) -> gate -> verify -> account."""
 
     commenter: Commenter
     title: TitleResult
     classification: Optional[Classification] = None  # None when dropped/reviewed before the LLM
     decision: Decision
     reason: str
+    post_type: Optional[PostType] = None
+    quality_flag: Optional[str] = None  # set when the verification pass downgraded the lead
     account: Optional[Account] = None   # set for actionable (surface/review) leads
     routing: Optional[Routing] = None
 

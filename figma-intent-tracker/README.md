@@ -24,21 +24,38 @@ A small, code-orchestrated pipeline where **the LLM is one bounded step** and th
 trust layer around it is the product.
 
 ```
-DISCOVER  Apify native LinkedIn post-search -> engagement-bait/hand-raiser posts,
-          ranked by bait cues in the post body + comment volume
-EXTRACT   Apify post-comments actor -> commenters: name, headline, company, profileUrl, comment
+DISCOVER  Apify native LinkedIn post-search -> candidate posts
+POST-TYPE classify each post FIRST; only mine lead_magnet / tool_question /
+          tool_comparison (where commenters reveal tooling). Drop showcases +
+          off_topic posts before spending any comment-scraping budget.
+EXTRACT   Apify post-comments actor (per qualifying post) -> commenters: name, headline, company, comment
 FILTER    deterministic ICP title filter -- runs BEFORE the LLM; off-ICP dropped for free
-CLASSIFY  claude-haiku-4-5, schema-constrained -> intent + need + verbatim quote + confidence + angle
+CLASSIFY  claude-haiku-4-5, schema-constrained, CONDITIONED ON POST TYPE
+          -> intent + need + verbatim quote + confidence + angle
 GATE      no surfaced lead without a verbatim evidence quote; ICP + intent + confidence thresholds
+VERIFY    deterministic quality check: downgrade a surfaced lead whose evidence
+          quote reads as praise, not tooling intent (catches LLM mislabels)
 ACCOUNT   match the commenter's company against Salesforce -> expansion-first routing:
           existing customer + intent = churn/expansion alert to the Account Owner (AE);
           no account = net-new lead for an SDR. Priority (P0..P3) by account tier + intent.
 NOTIFY    Slack incoming webhook per surfaced lead (human-in-the-loop; never auto-DMs)
-DASHBOARD static HTML: funnel, persona/intent breakdown, account routing, precision vs golden, impact (blank)
+DASHBOARD static HTML: post-type gate, funnel, quality checks, persona/intent,
+          account routing, precision vs golden, impact (blank)
 ```
+
+The post type is the prior. The same comment means different things on different
+posts -- "interested" is a hand-raise on a lead-magnet post and noise on a launch-
+hype post -- so the post is classified first, off-topic/tooling-irrelevant posts
+are dropped before they cost anything, and the comment classifier is told the post
+type so it reads short comments in context.
 
 The trust layer, concretely:
 
+- **Constrain inputs (post type first).** `posttype.py` classifies each post before
+  any comment is mined. Only `lead_magnet` / `tool_question` / `tool_comparison`
+  posts qualify -- showcases and off-topic posts are dropped, so a real designer who
+  happens to comment on an HR or finance post never enters the funnel. A
+  deterministic "comment-for-asset" detector catches lead magnets for free.
 - **Constrain outputs.** A deterministic ICP title filter (`titles.py`) runs
   before any LLM call -- only ICP personas reach the model (design buyers/users,
   plus a looser `builder` prospect tier for founders/PMs/indie/no-code builders),
@@ -51,11 +68,16 @@ The trust layer, concretely:
   includes a confident-but-hallucinated classification that the gate catches.)
 - **Lightest safe solution.** Free code filter first, then the cheapest capable
   model (`claude-haiku-4-5`) on the narrow set that passed the filter.
-- **Quality checks.** The gate + a golden-set eval (`tests/`, asserting expected
-  surfaced/review/dropped) + Slack delivery.
-- **Monitoring.** `dashboard.py` renders the funnel, persona/intent breakdown,
-  and precision vs golden. Business-impact metrics are left blank and marked
-  "(confirm with real CRM data)" -- never fabricated.
+- **Quality checks.** Three layers: the verbatim gate; a deterministic
+  verification pass (`verify.py`) that downgrades a surfaced lead whose evidence
+  quote reads as praise rather than tooling intent (the one mislabel the gate
+  can't catch); and a golden-set eval (`tests/`) asserting expected
+  surfaced/review/dropped across post types and intents.
+- **Monitoring.** `monitoring.py` computes per-run metrics -- post-type and lead
+  funnels, intent distribution, hallucinated quotes caught, verification
+  downgrades, precision vs golden -- and appends them to a run log so accuracy
+  drift is visible over time. `dashboard.py` renders them. Business-impact metrics
+  are left blank and marked "(confirm with real CRM data)" -- never fabricated.
 - **Expansion-first routing (the PLG motion).** Each actionable lead's company is
   matched against Salesforce (`accounts.py`). An existing paid customer showing
   design-tool intent becomes a churn/expansion alert routed to the Account Owner

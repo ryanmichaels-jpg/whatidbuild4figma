@@ -16,18 +16,21 @@ import accounts as accounts_mod
 import classify as classify_mod
 import discover as discover_mod
 import extract as extract_mod
+import posttype as posttype_mod
 from gate import decide
 from notify import notify
-from schema import Commenter, Decision, Lead, TitleStatus
+from schema import Commenter, Decision, Lead, PostType, TitleStatus
+from verify import verify
 from titles import classify_title
 
 _GOLDEN = os.path.join(os.path.dirname(__file__), "data", "golden.json")
 
 
-def process(commenter: Commenter, mode: str) -> Lead:
-    """Run one commenter through filter -> (classify) -> gate -> account match + route."""
+def process(commenter: Commenter, post_type: PostType | None, mode: str) -> Lead:
+    """Run one commenter through filter -> (classify) -> gate -> verify -> account match + route."""
     title = classify_title(commenter.headline)
     cls = None
+    quality_flag = None
 
     if title.status in (TitleStatus.excluded, TitleStatus.off_icp):
         decision = Decision.drop
@@ -40,11 +43,22 @@ def process(commenter: Commenter, mode: str) -> Lead:
         decision = Decision.review
         reason = "missing title -- routed to human review, not dropped"
     else:
-        # matched persona -> spend an LLM call
-        cls = classify_mod.classify(commenter, mode)
+        # matched persona -> spend an LLM call, conditioned on the post type
+        cls = classify_mod.classify(commenter, mode, post_type.value if post_type else None)
         decision, reason = decide(commenter, title, cls)
 
-    lead = Lead(commenter=commenter, title=title, classification=cls, decision=decision, reason=reason)
+    lead = Lead(
+        commenter=commenter, title=title, classification=cls,
+        decision=decision, reason=reason, post_type=post_type,
+    )
+
+    # quality check: downgrade a surfaced lead whose evidence reads as praise, not intent
+    new_decision, quality_flag = verify(lead)
+    if new_decision != decision:
+        lead.decision = new_decision
+        lead.reason = quality_flag
+        lead.quality_flag = quality_flag
+        decision = new_decision
 
     # account match + expansion routing only for actionable leads (no CRM lookup on dropped noise)
     if decision in (Decision.surface, Decision.review):
@@ -56,11 +70,26 @@ def process(commenter: Commenter, mode: str) -> Lead:
     return lead
 
 
-def run(mode: str | None = None) -> list[Lead]:
+def run_with_posts(mode: str | None = None):
+    """Full pipeline. Returns (leads, post_results-by-url)."""
     mode = mode or os.environ.get("MODE", "demo")
     posts = discover_mod.discover(mode)
-    commenters = extract_mod.extract(mode, posts)
-    return [process(c, mode) for c in commenters]
+
+    # POST-TYPE GATE: classify every post; only mine the qualifying types.
+    post_results = {p["url"]: posttype_mod.classify_post(p, mode) for p in posts}
+
+    leads: list[Lead] = []
+    for post in posts:
+        pc = post_results[post["url"]]
+        if not pc.qualifies:
+            continue  # off_topic / showcase -> never scrape its comments
+        for commenter in extract_mod.extract_for_post(post, mode):
+            leads.append(process(commenter, pc.post_type, mode))
+    return leads, post_results
+
+
+def run(mode: str | None = None) -> list[Lead]:
+    return run_with_posts(mode)[0]
 
 
 def funnel(leads: list[Lead]) -> dict:
@@ -97,24 +126,34 @@ def precision_vs_golden(leads: list[Lead]) -> dict | None:
     }
 
 
-def main() -> None:
-    mode = os.environ.get("MODE", "demo")
-    leads = run(mode)
+def _load_golden() -> dict | None:
+    try:
+        with open(_GOLDEN, "r", encoding="utf-8") as fh:
+            return {k: v for k, v in json.load(fh).items() if not k.startswith("_")}
+    except FileNotFoundError:
+        return None
 
-    f = funnel(leads)
-    print(f"mode={mode}  funnel={f}")
+
+def main() -> None:
+    import datetime
+
+    import monitoring
+
+    mode = os.environ.get("MODE", "demo")
+    leads, post_results = run_with_posts(mode)
+
+    metrics = monitoring.compute(leads, post_results, _load_golden())
+    print(f"mode={mode}  metrics={metrics}")
 
     for lead in leads:
         if lead.decision == Decision.surface:
             notify(lead)
 
-    prec = precision_vs_golden(leads)
-    if prec:
-        print(f"eval={prec}")
+    monitoring.append_run_log(metrics, mode, datetime.datetime.utcnow().isoformat() + "Z")
 
     from dashboard import render
 
-    out = render(leads, mode)
+    out = render(leads, mode, post_results)
     print(f"dashboard -> {out}")
 
 

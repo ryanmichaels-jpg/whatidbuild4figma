@@ -134,5 +134,16 @@
     "timestamp": "2026-06-23T15:30:00Z",
     "post_url": "https://www.linkedin.com/posts/demo-post-migration-guide",
     "source": "demo"
+  },
+  {
+    "name": "Pat Quinn",
+    "headline": "Product Designer at Offbeat",
+    "company": "Offbeat",
+    "profile_url": "https://www.linkedin.com/in/demo-pat-quinn",
+    "comment_text": "love this, so true -- numbers don't lie",
+    "reaction": "like",
+    "timestamp": "2026-06-23T16:00:00Z",
+    "post_url": "https://www.linkedin.com/posts/demo-post-offtopic",
+    "source": "demo"
   }
 ]

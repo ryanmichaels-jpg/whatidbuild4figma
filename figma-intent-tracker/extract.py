@@ -152,7 +152,15 @@ def extract_live(post_urls: list[str]) -> list[Commenter]:
     return map_raw_items(raw_items, default_post)
 
 
-def extract(mode: str, posts: list[dict]) -> list[Commenter]:
+def extract_for_post(post: dict, mode: str) -> list[Commenter]:
+    """Commenters on ONE post -- so each carries its post's type unambiguously."""
     if mode == "live":
-        return extract_live([p["url"] for p in posts])
-    return extract_demo()
+        return extract_live([post["url"]])
+    return [c for c in extract_demo() if c.post_url == post["url"]]
+
+
+def extract(mode: str, posts: list[dict]) -> list[Commenter]:
+    out: list[Commenter] = []
+    for p in posts:
+        out.extend(extract_for_post(p, mode))
+    return out

@@ -46,12 +46,26 @@ def classify_demo(commenter: Commenter) -> Classification:
     return Classification(**rec)
 
 
-def classify_live(commenter: Commenter) -> Classification:
-    """Call claude-haiku-4-5 with a schema-constrained response."""
+# How the post type changes the reading of a comment (the "post is the prior" rule).
+_POST_CONTEXT = {
+    "lead_magnet": (
+        "This is a lead-magnet post (the author offers a guide/tool for commenting), "
+        "so a short comment asking for the asset ('guide', 'interested', 'send it') IS "
+        "an active hand-raise -- treat it as active_need, not noise."
+    ),
+    "tool_question": "This post asks what tools people use, so naming a tool or a need is evaluating/active_need.",
+    "tool_comparison": "This post compares tools, so stating a preference or gap is evaluating.",
+}
+
+
+def classify_live(commenter: Commenter, post_type: str | None = None) -> Classification:
+    """Call claude-haiku-4-5 with a schema-constrained response, conditioned on post type."""
     from anthropic import Anthropic  # imported lazily so demo mode needs no SDK
 
     client = Anthropic()  # reads ANTHROPIC_API_KEY from the environment
+    context = _POST_CONTEXT.get(post_type or "", "")
     user = (
+        f"Post type: {post_type or 'unknown'}. {context}\n"
         f"Comment: {commenter.comment_text!r}\n"
         f"Author headline: {commenter.headline or 'unknown'}\n"
         "Classify this commenter's design-tool intent."
@@ -72,5 +86,5 @@ def classify_live(commenter: Commenter) -> Classification:
     return Classification(**json.loads(payload))
 
 
-def classify(commenter: Commenter, mode: str) -> Classification:
-    return classify_live(commenter) if mode == "live" else classify_demo(commenter)
+def classify(commenter: Commenter, mode: str, post_type: str | None = None) -> Classification:
+    return classify_live(commenter, post_type) if mode == "live" else classify_demo(commenter)

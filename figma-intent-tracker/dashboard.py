@@ -25,11 +25,22 @@ def _bar(label: str, value: int, total: int) -> str:
     )
 
 
-def render(leads: list[Lead], mode: str) -> str:
+def render(leads: list[Lead], mode: str, post_results: dict | None = None) -> str:
     from pipeline import funnel as _funnel, precision_vs_golden
 
     f = _funnel(leads)
     total = f["extracted"] or 1
+
+    # post-type gate rollup
+    post_results = post_results or {}
+    post_types = Counter(pc.post_type.value for pc in post_results.values())
+    posts_total = len(post_results) or 1
+    posts_qualified = sum(1 for pc in post_results.values() if pc.qualifies)
+    post_html = "".join(_bar(k, v, posts_total) for k, v in sorted(post_types.items())) or "<em>n/a</em>"
+
+    # quality counters
+    hallucinations = sum(1 for x in leads if "verbatim" in x.reason)
+    downgrades = sum(1 for x in leads if x.quality_flag)
 
     personas = Counter(
         x.title.persona.value for x in leads if x.title.persona is not None
@@ -129,7 +140,13 @@ def render(leads: list[Lead], mode: str) -> str:
 <h1>Figma LinkedIn Intent Miner -- Monitoring</h1>
 <p class="meta">Mode: <b>{html.escape(mode)}</b> &middot; The trust layer is the product: every surfaced lead carries a verbatim evidence quote that passed a deterministic gate.</p>
 
+<h2>Post-type gate</h2>
+<p class="meta">{posts_qualified} of {len(post_results)} posts qualified (lead_magnet / tool_question / tool_comparison). Showcases and off_topic posts are dropped before any comment is mined.</p>{post_html}
+
 <h2>Funnel</h2>{funnel_html}
+<h2>Quality checks</h2>
+<p>Hallucinated quotes caught by the gate: <b>{hallucinations}</b><br>
+Praise-mislabels downgraded by verification: <b>{downgrades}</b></p>
 <h2>Persona breakdown (ICP tiers)</h2>{persona_html}
 <h2>Intent breakdown</h2>{intent_html}
 <h2>Quality vs golden set</h2>{eval_html}

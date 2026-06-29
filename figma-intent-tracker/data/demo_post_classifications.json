@@ -1,0 +1,18 @@
+{
+  "_comment": "Recorded post-type judgments for demo mode (zero credentials). The off_topic post is an ICP-commenter trap: a real product designer comments on it, but the post is not about design tooling, so the post stage drops it before any comment is mined.",
+  "https://www.linkedin.com/posts/demo-post-pricing-change": {
+    "post_type": "tool_question",
+    "tools_mentioned": ["Figma"],
+    "reason": "asks what teams are switching to after the pricing change"
+  },
+  "https://www.linkedin.com/posts/demo-post-migration-guide": {
+    "post_type": "lead_magnet",
+    "tools_mentioned": ["Figma"],
+    "reason": "comment to receive the Figma-alternative migration guide"
+  },
+  "https://www.linkedin.com/posts/demo-post-offtopic": {
+    "post_type": "off_topic",
+    "tools_mentioned": [],
+    "reason": "about P&L margins and exits, not design/build tooling"
+  }
+}
