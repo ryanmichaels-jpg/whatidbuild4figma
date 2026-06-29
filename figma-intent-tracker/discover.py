@@ -1,10 +1,15 @@
-"""DISCOVER stage: find LinkedIn intent-post URLs.
+"""DISCOVER stage: find LinkedIn engagement-bait / hand-raiser posts.
 
-Apify-only and cookie-free: live mode runs the Apify Google Search Scraper over
-`site:linkedin.com/posts "<keyword>"` queries and keeps the LinkedIn post URLs it
-returns. This avoids needing a LinkedIn session cookie just to discover posts --
-the cookie is only required downstream for authenticated comment extraction.
-Demo mode reads committed synthetic posts. Actor slug is env-configurable.
+The target is lead-magnet posts where the author asks people to comment to get
+something ("comment 'guide' and I'll DM you the Figma-alternative playbook",
+"comment below and I'll show you how to do what Figma does"). On those posts the
+value IS the commenters: each comment is a person raising their hand.
+
+Apify-only and cookie-free, via a native LinkedIn post-search actor
+(harvestapi~linkedin-post-search) that returns each post's full body text and its
+engagement counts. That lets us detect the bait call-to-action in the actual post
+body and rank candidates by comment volume -- the reliable proxy for "this post is
+harvesting commenters". Demo mode reads committed synthetic posts.
 """
 from __future__ import annotations
 
@@ -14,19 +19,44 @@ from typing import Optional
 
 from apify_run import run_actor
 
-INTENT_KEYWORDS = [
-    "Figma alternative",
+# LinkedIn search queries shaped to surface Figma switching + lead-magnet posts.
+DISCOVERY_QUERIES = [
+    "comment and I'll send Figma alternative",
+    "comment below Figma alternative guide",
+    "free Figma alternative",
+    "leaving Figma what should we switch to",
     "replacing Figma",
-    "leaving Figma",
-    "ditching Figma",
-    "comment and I'll send the guide",
-    "what are you using instead of Figma",
+    "do what Figma does",
+]
+
+# Cues that the post BODY is engagement bait (author harvesting commenters).
+BAIT_CUES = [
+    "comment below",
+    "comment 'guide'",
+    'comment "guide"',
+    "comment the word",
+    "comment and i",
+    "i'll send",
+    "i will send",
+    "i'll show you",
+    "i'll dm",
+    "dm you",
+    "send you the",
+    "i'll share",
+    "drop a comment",
+    "tag someone",
+    "tag a",
+    "raise your hand",
+    "want the link",
+    "want it",
+    "link in the comments",
+    "save this",
+    "\U0001f447",  # down-pointing finger emoji
 ]
 
 _DEMO_POSTS = os.path.join(os.path.dirname(__file__), "data", "demo_posts.json")
-
-# Cookie-free discovery. Override with an authenticated LinkedIn post-search actor if preferred.
-APIFY_POST_SEARCH_ACTOR = os.environ.get("APIFY_POST_SEARCH_ACTOR", "apify~google-search-scraper")
+APIFY_POST_SEARCH_ACTOR = os.environ.get("APIFY_POST_SEARCH_ACTOR", "harvestapi~linkedin-post-search")
+MAX_POSTS_PER_QUERY = int(os.environ.get("APIFY_MAX_POSTS", "8"))
 
 
 def discover_demo() -> list[dict]:
@@ -34,28 +64,58 @@ def discover_demo() -> list[dict]:
         return json.load(fh)
 
 
-def _post_url(url: str) -> bool:
-    return "linkedin.com/posts/" in url
+def bait_score(text: str) -> int:
+    """How many engagement-bait cues appear in a post body."""
+    low = (text or "").lower()
+    return sum(cue in low for cue in BAIT_CUES)
 
 
-def discover_live(keywords: Optional[list[str]] = None, limit: int = 10) -> list[dict]:
-    keywords = keywords or INTENT_KEYWORDS
-    queries = "\n".join(f'site:linkedin.com/posts "{kw}"' for kw in keywords)
+def _comment_count(item: dict) -> int:
+    eng = item.get("engagement") or {}
+    return int(eng.get("comments") or 0)
+
+
+def discover_live(
+    queries: Optional[list[str]] = None,
+    max_posts: Optional[int] = None,
+    posted_limit: str = "any",
+) -> list[dict]:
+    """Return Figma posts ranked by (bait cues in body, then comment volume).
+
+    Each post: url, title, content, comment_count, reaction_count, bait_score.
+    """
+    queries = queries or DISCOVERY_QUERIES
     body = {
-        "queries": queries,
-        "resultsPerPage": limit,
-        "maxPagesPerQuery": 1,
-        "countryCode": "us",
+        "searchQueries": queries,
+        "maxPosts": max_posts or MAX_POSTS_PER_QUERY,
+        "sortBy": "relevance",
+        "postedLimit": posted_limit,
+        "scrapeComments": False,  # cheap discovery pass; comments are pulled later for the top posts
     }
     items = run_actor(APIFY_POST_SEARCH_ACTOR, body)
 
-    seen, posts = set(), []
-    for item in items:
-        for row in item.get("organicResults", []) or []:
-            url = (row.get("url") or "").split("?")[0]
-            if url and _post_url(url) and url not in seen:
-                seen.add(url)
-                posts.append({"url": url, "title": row.get("title") or row.get("description") or "", "keyword": None})
+    by_url: dict[str, dict] = {}
+    for it in items:
+        url = (it.get("linkedinUrl") or it.get("shareLinkedinUrl") or "").split("?")[0]
+        if not url or "/posts/" not in url:
+            continue
+        if url in by_url:
+            continue
+        content = it.get("content") or ""
+        reactions = it.get("engagement", {}).get("reactions")
+        reaction_count = sum(r.get("count", 0) for r in reactions) if isinstance(reactions, list) else 0
+        by_url[url] = {
+            "url": url,
+            "title": content.split("\n", 1)[0][:140] or "(no text)",
+            "content": content,
+            "comment_count": _comment_count(it),
+            "reaction_count": reaction_count,
+            "bait_score": bait_score(content),
+        }
+
+    posts = list(by_url.values())
+    # bait posts first (we want them), then by comment volume (the engagement proxy)
+    posts.sort(key=lambda p: (p["bait_score"], p["comment_count"]), reverse=True)
     return posts
 
 

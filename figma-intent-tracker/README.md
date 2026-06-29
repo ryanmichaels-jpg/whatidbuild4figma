@@ -19,7 +19,8 @@ A small, code-orchestrated pipeline where **the LLM is one bounded step** and th
 trust layer around it is the product.
 
 ```
-DISCOVER  Apify LinkedIn post-search actor -> intent post URLs
+DISCOVER  Apify native LinkedIn post-search -> engagement-bait/hand-raiser posts,
+          ranked by bait cues in the post body + comment volume
 EXTRACT   Apify post-comments actor -> commenters: name, headline, profileUrl, comment
 FILTER    deterministic ICP title filter -- runs BEFORE the LLM; off-ICP dropped for free
 CLASSIFY  claude-haiku-4-5, schema-constrained -> intent + need + verbatim quote + confidence + angle
@@ -68,9 +69,10 @@ MODE=live python pipeline.py
 
 Live mode needs `APIFY_TOKEN` (discovery + comment extraction) and
 `ANTHROPIC_API_KEY` (classifier). Both Apify actors are cookie-free -- discovery
-via the Google Search Scraper over `site:linkedin.com/posts "<keyword>"`, and
-comment extraction via a managed-auth comments actor -- so no LinkedIn session
-cookie is required. `SLACK_WEBHOOK_URL` is optional (without it, surfaced leads
+via a native LinkedIn post-search actor (which returns each post's body text and
+comment count, so bait posts are ranked by their actual call-to-action plus
+comment volume), and comment extraction via a managed-auth comments actor -- so no
+LinkedIn session cookie is required. `SLACK_WEBHOOK_URL` is optional (without it, surfaced leads
 print their payload). Actor slugs are env vars (`APIFY_POST_SEARCH_ACTOR`,
 `APIFY_ACTOR`). Extraction drops the post author and dedupes to one lead per
 person before classifying.
