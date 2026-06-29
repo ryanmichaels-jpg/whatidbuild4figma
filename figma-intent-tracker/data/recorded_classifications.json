@@ -1,0 +1,52 @@
+{
+  "_comment": "Recorded claude-haiku-4-5 outputs for demo mode, keyed by profile_url. Lets the full pipeline + gate + eval run with zero credentials and keeps committed data synthetic. Dana's record is a deliberately hallucinated quote (not present in her comment) to prove the gate drops it.",
+  "https://www.linkedin.com/in/demo-maya-chen": {
+    "intent_type": "active_need",
+    "need": "Actively evaluating Figma alternatives this quarter after a pricing increase.",
+    "evidence_quote": "We're actively evaluating alternatives this quarter",
+    "confidence": 0.86,
+    "suggested_angle": "Lead with design-systems continuity and predictable enterprise pricing for her team."
+  },
+  "https://www.linkedin.com/in/demo-devraj-patel": {
+    "intent_type": "evaluating",
+    "need": "Comparing options for a 200-seat migration; needs SSO and dev handoff parity.",
+    "evidence_quote": "Evaluating a switch for our 200-seat org",
+    "confidence": 0.82,
+    "suggested_angle": "Speak to SSO/SCIM and dev-mode handoff parity at 200 seats; offer a migration scoping call."
+  },
+  "https://www.linkedin.com/in/demo-lena-fischer": {
+    "intent_type": "evaluating",
+    "need": "Comparing design-tool options for her team this month.",
+    "evidence_quote": "we're comparing options for our team",
+    "confidence": 0.7,
+    "suggested_angle": "Share a side-by-side migration guide and offer a hands-on team trial."
+  },
+  "https://www.linkedin.com/in/demo-tom-becker": {
+    "intent_type": "curious",
+    "need": "Passive interest, no stated timeline or active need.",
+    "evidence_quote": "Curious what's out there these days",
+    "confidence": 0.5,
+    "suggested_angle": "Low priority; send a lightweight resource and revisit if intent strengthens."
+  },
+  "https://www.linkedin.com/in/demo-priya-nair": {
+    "intent_type": "curious",
+    "need": "One-word reply with no stated need or context.",
+    "evidence_quote": "interested",
+    "confidence": 0.4,
+    "suggested_angle": "Too thin to act on; route to a human to qualify before any outreach."
+  },
+  "https://www.linkedin.com/in/demo-chris-doyle": {
+    "intent_type": "noise",
+    "need": "General praise for the post; no switching signal.",
+    "evidence_quote": "Love this post",
+    "confidence": 0.3,
+    "suggested_angle": "No buying signal; do not surface."
+  },
+  "https://www.linkedin.com/in/demo-dana-wolfe": {
+    "intent_type": "evaluating",
+    "need": "Claims an in-progress migration off Figma.",
+    "evidence_quote": "we are leaving Figma next month",
+    "confidence": 0.8,
+    "suggested_angle": "Offer migration support."
+  }
+}

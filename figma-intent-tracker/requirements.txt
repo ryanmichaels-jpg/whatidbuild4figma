@@ -1,0 +1,6 @@
+pydantic>=2.6
+requests>=2.31
+anthropic>=0.40
+pytest>=8.0
+# Apify and Slack are plain REST calls over requests/urllib -- no SDKs needed.
+

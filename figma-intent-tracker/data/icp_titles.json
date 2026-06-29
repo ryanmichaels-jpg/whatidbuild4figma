@@ -1,0 +1,16 @@
+{
+  "_comment": "Constrain-outputs data. Deterministic ICP title filter runs BEFORE any LLM call. Include rules map a title keyword to a Figma buyer-committee persona/tier. Exclude rules drop non-buyers for free. Keep this file as the single source of truth for the filter.",
+  "include": [
+    { "keywords": ["design systems lead", "design systems", "design technologist"], "persona": "champion" },
+    { "keywords": ["designops", "design ops", "design operations"], "persona": "champion" },
+    { "keywords": ["head of design", "design director", "director of design", "director of product design"], "persona": "champion" },
+    { "keywords": ["vp of design", "chief design officer", "cdo"], "persona": "economic_buyer" },
+    { "keywords": ["cpo", "chief product officer", "vp of product", "head of product", "director of product"], "persona": "economic_buyer" },
+    { "keywords": ["vp of engineering", "head of engineering", "director of engineering", "engineering manager"], "persona": "economic_buyer" },
+    { "keywords": ["product designer", "ux designer", "ui designer", "ux researcher", "design engineer"], "persona": "user" },
+    { "keywords": ["frontend", "front-end", "software engineer"], "persona": "user" },
+    { "keywords": ["head of it", "it admin", "ciso", "head of security", "procurement"], "persona": "gatekeeper" }
+  ],
+  "exclude": ["student", "recruiter", "talent acquisition", "open to work", "job seeker"],
+  "exclude_tokens": ["intern"]
+}

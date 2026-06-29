@@ -1,0 +1,15 @@
+{
+  "_comment": "Golden labels for the eval. Each commenter (by profile_url) has the decision the pipeline must produce. Tests assert exact match; the dashboard reports precision vs these labels.",
+  "https://www.linkedin.com/in/demo-maya-chen": "surface",
+  "https://www.linkedin.com/in/demo-devraj-patel": "surface",
+  "https://www.linkedin.com/in/demo-lena-fischer": "surface",
+  "https://www.linkedin.com/in/demo-tom-becker": "review",
+  "https://www.linkedin.com/in/demo-priya-nair": "review",
+  "https://www.linkedin.com/in/demo-sam-rivera": "review",
+  "https://www.linkedin.com/in/demo-jordan-lee": "drop",
+  "https://www.linkedin.com/in/demo-casey-morgan": "drop",
+  "https://www.linkedin.com/in/demo-alex-kim": "drop",
+  "https://www.linkedin.com/in/demo-robin-shah": "drop",
+  "https://www.linkedin.com/in/demo-chris-doyle": "drop",
+  "https://www.linkedin.com/in/demo-dana-wolfe": "drop"
+}

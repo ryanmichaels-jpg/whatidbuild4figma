@@ -1,0 +1,15 @@
+# never commit real scraped people's data (compliance posture)
+data/*-live.json
+
+# rendered artifact
+dashboard.html
+
+# env / secrets
+.env
+
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/

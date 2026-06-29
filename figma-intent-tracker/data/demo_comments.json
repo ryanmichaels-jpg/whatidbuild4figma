@@ -1,0 +1,122 @@
+[
+  {
+    "name": "Maya Chen",
+    "headline": "Design Systems Lead at Acme",
+    "profile_url": "https://www.linkedin.com/in/demo-maya-chen",
+    "comment_text": "We're actively evaluating alternatives this quarter -- the pricing change hit hard. What are teams moving to?",
+    "reaction": "like",
+    "timestamp": "2026-06-22T14:05:00Z",
+    "post_url": "https://www.linkedin.com/posts/demo-post-pricing-change",
+    "source": "demo"
+  },
+  {
+    "name": "Devraj Patel",
+    "headline": "VP of Product at Northwind",
+    "profile_url": "https://www.linkedin.com/in/demo-devraj-patel",
+    "comment_text": "Evaluating a switch for our 200-seat org. We need SSO and dev handoff parity before we commit.",
+    "reaction": "insightful",
+    "timestamp": "2026-06-22T15:11:00Z",
+    "post_url": "https://www.linkedin.com/posts/demo-post-pricing-change",
+    "source": "demo"
+  },
+  {
+    "name": "Lena Fischer",
+    "headline": "Product Designer at Brightloom",
+    "profile_url": "https://www.linkedin.com/in/demo-lena-fischer",
+    "comment_text": "guide please -- we're comparing options for our team this month",
+    "reaction": "like",
+    "timestamp": "2026-06-23T09:40:00Z",
+    "post_url": "https://www.linkedin.com/posts/demo-post-migration-guide",
+    "source": "demo"
+  },
+  {
+    "name": "Tom Becker",
+    "headline": "UX Researcher at Glasshouse",
+    "profile_url": "https://www.linkedin.com/in/demo-tom-becker",
+    "comment_text": "Curious what's out there these days, might take a look at some point.",
+    "reaction": "like",
+    "timestamp": "2026-06-23T10:02:00Z",
+    "post_url": "https://www.linkedin.com/posts/demo-post-migration-guide",
+    "source": "demo"
+  },
+  {
+    "name": "Priya Nair",
+    "headline": "Head of Design at Vaultline",
+    "profile_url": "https://www.linkedin.com/in/demo-priya-nair",
+    "comment_text": "interested",
+    "reaction": "like",
+    "timestamp": "2026-06-23T11:20:00Z",
+    "post_url": "https://www.linkedin.com/posts/demo-post-migration-guide",
+    "source": "demo"
+  },
+  {
+    "name": "Sam Rivera",
+    "headline": null,
+    "profile_url": "https://www.linkedin.com/in/demo-sam-rivera",
+    "comment_text": "we're leaving figma, send the guide",
+    "reaction": "like",
+    "timestamp": "2026-06-23T12:00:00Z",
+    "post_url": "https://www.linkedin.com/posts/demo-post-migration-guide",
+    "source": "demo"
+  },
+  {
+    "name": "Jordan Lee",
+    "headline": "Computer Science Student at MIT",
+    "profile_url": "https://www.linkedin.com/in/demo-jordan-lee",
+    "comment_text": "this is so interesting, saving for later!",
+    "reaction": "like",
+    "timestamp": "2026-06-23T12:30:00Z",
+    "post_url": "https://www.linkedin.com/posts/demo-post-migration-guide",
+    "source": "demo"
+  },
+  {
+    "name": "Casey Morgan",
+    "headline": "Technical Recruiter at HireFast",
+    "profile_url": "https://www.linkedin.com/in/demo-casey-morgan",
+    "comment_text": "Great thread, following the discussion here.",
+    "reaction": "like",
+    "timestamp": "2026-06-23T13:00:00Z",
+    "post_url": "https://www.linkedin.com/posts/demo-post-migration-guide",
+    "source": "demo"
+  },
+  {
+    "name": "Alex Kim",
+    "headline": "Marketing Intern at Foobar",
+    "profile_url": "https://www.linkedin.com/in/demo-alex-kim",
+    "comment_text": "comment so I can see the guide too",
+    "reaction": "like",
+    "timestamp": "2026-06-23T13:30:00Z",
+    "post_url": "https://www.linkedin.com/posts/demo-post-migration-guide",
+    "source": "demo"
+  },
+  {
+    "name": "Robin Shah",
+    "headline": "Marketing Manager at Foobar",
+    "profile_url": "https://www.linkedin.com/in/demo-robin-shah",
+    "comment_text": "we are thinking about switching design tools soon",
+    "reaction": "like",
+    "timestamp": "2026-06-23T14:00:00Z",
+    "post_url": "https://www.linkedin.com/posts/demo-post-pricing-change",
+    "source": "demo"
+  },
+  {
+    "name": "Chris Doyle",
+    "headline": "Design Director at Lumen",
+    "profile_url": "https://www.linkedin.com/in/demo-chris-doyle",
+    "comment_text": "Love this post, great thread everyone!",
+    "reaction": "celebrate",
+    "timestamp": "2026-06-23T14:30:00Z",
+    "post_url": "https://www.linkedin.com/posts/demo-post-pricing-change",
+    "source": "demo"
+  },
+  {
+    "name": "Dana Wolfe",
+    "headline": "DesignOps Manager at Castor",
+    "profile_url": "https://www.linkedin.com/in/demo-dana-wolfe",
+    "comment_text": "We migrated about half our teams already this spring. Glad to compare notes with anyone evaluating.",
+    "reaction": "insightful",
+    "timestamp": "2026-06-23T15:00:00Z",
+    "post_url": "https://www.linkedin.com/posts/demo-post-pricing-change",
+    "source": "demo"
+  }
+]

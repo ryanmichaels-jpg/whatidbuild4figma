@@ -1,0 +1,56 @@
+"""Deterministic ICP title filter -- the 'constrain outputs' layer.
+
+Runs BEFORE any LLM call. Off-ICP commenters are dropped for free (no tokens
+spent), buyer/user personas pass to the classifier, and a missing headline is
+routed to human review rather than silently dropped.
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+from functools import lru_cache
+
+from schema import Persona, TitleResult, TitleStatus
+
+_DATA = os.path.join(os.path.dirname(__file__), "data", "icp_titles.json")
+
+
+@lru_cache(maxsize=1)
+def _rules() -> dict:
+    with open(_DATA, "r", encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def classify_title(headline: str | None) -> TitleResult:
+    """Map a LinkedIn headline to a TitleResult.
+
+    Precedence: missing -> excluded -> include-match -> off_icp.
+    Include rules are checked in file order, so more specific personas (e.g. a
+    'director of product design' champion) win over broader ones.
+    """
+    if headline is None or not headline.strip():
+        return TitleResult(status=TitleStatus.missing)
+
+    text = headline.lower()
+    rules = _rules()
+
+    for term in rules["exclude"]:
+        if term in text:
+            return TitleResult(status=TitleStatus.excluded, matched_keyword=term)
+
+    for token in rules["exclude_tokens"]:
+        # whole-word match so 'intern' does not fire on 'internal' or 'international'
+        if re.search(rf"\b{re.escape(token)}\b", text):
+            return TitleResult(status=TitleStatus.excluded, matched_keyword=token)
+
+    for rule in rules["include"]:
+        for kw in rule["keywords"]:
+            if kw in text:
+                return TitleResult(
+                    status=TitleStatus.matched,
+                    persona=Persona(rule["persona"]),
+                    matched_keyword=kw,
+                )
+
+    return TitleResult(status=TitleStatus.off_icp)
