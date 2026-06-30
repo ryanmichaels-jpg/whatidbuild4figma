@@ -285,6 +285,45 @@ def _merge_candidates(native: list[dict], google: list[dict]) -> list[dict]:
     return list(by_url.values())
 
 
+# --- Enrichment: give Google's snippet-only posts a full body + comment count -----
+POST_DETAIL_ACTOR = os.environ.get("POST_DETAIL_ACTOR", "apimaestro~linkedin-post-detail")
+
+
+def _post_detail_index(items: list[dict]) -> dict:
+    """Map post URL -> {text, comments, reactions} from the post-detail actor output."""
+    out = {}
+    for it in items:
+        post = it.get("post") or {}
+        stats = it.get("stats") or {}
+        url = (post.get("url") or "").split("?")[0]
+        if url:
+            out[url] = {
+                "text": post.get("text") or "",
+                "comments": int(stats.get("comments") or 0),
+                "reactions": int(stats.get("total_reactions") or 0),
+            }
+    return out
+
+
+def enrich_posts(posts: list[dict]) -> list[dict]:
+    """Fetch full body + comment count for posts that only have a snippet (Google hits)."""
+    urls = [p["url"] for p in posts]
+    if not urls:
+        return posts
+    index = _post_detail_index(run_actor(POST_DETAIL_ACTOR, {"post_urls": urls}))
+    for p in posts:
+        d = index.get(p["url"])
+        if d and d["text"]:
+            tools = matched_displaced_tools(d["text"]) or p.get("matched_tools", [])
+            p.update(
+                content=d["text"], comment_count=d["comments"], reaction_count=d["reactions"],
+                bait_score=bait_score(d["text"]), matched_tools=tools,
+                surfaces=sorted({DISPLACED_TOOLS[t] for t in tools if t in DISPLACED_TOOLS}) or p.get("surfaces", []),
+                enriched=True,
+            )
+    return posts
+
+
 def union_discover(
     queries: Optional[list[str]] = None,
     max_posts: Optional[int] = None,
@@ -292,8 +331,14 @@ def union_discover(
     require_tool: bool = True,
     require_bait: bool = False,
     google_limit: int = 10,
+    enrich_top: int = 30,
+    cap: Optional[int] = None,
 ) -> list[dict]:
-    """Two retrievers (native fuzzy + Google boolean) unioned, then boolean-filtered."""
+    """Two retrievers (native fuzzy + Google boolean) unioned, enriched, boolean-filtered.
+
+    enrich_top: fetch full body + comment count for the top-N Google-only candidates so
+    they rank/gate fairly. cap: keep only the top-N after ranking (bounds gate cost).
+    """
     native = discover_live(queries=queries, max_posts=max_posts, posted_limit=posted_limit)
     for p in native:
         p.setdefault("source", "native")
@@ -303,9 +348,20 @@ def union_discover(
         print(f"[union_discover] google retriever skipped: {e}")
         google = []
     combined = _merge_candidates(native, google)
+
+    if enrich_top:
+        google_only = [p for p in combined if p.get("source") == "google"]
+        google_only.sort(key=lambda p: (len(p.get("matched_tools", [])), p.get("bait_score", 0)), reverse=True)
+        try:
+            enrich_posts(google_only[:enrich_top])
+        except Exception as e:
+            print(f"[union_discover] enrichment skipped: {e}")
+
     kept, drops = filter_candidates(combined, require_tool=require_tool, require_bait=require_bait)
-    print(f"[union_discover] native={len(native)} google={len(google)} "
-          f"combined={len(combined)} -> kept {len(kept)}; dropped {dict(drops)}")
+    if cap:
+        kept = kept[:cap]
+    print(f"[union_discover] native={len(native)} google={len(google)} combined={len(combined)} "
+          f"-> kept {len(kept)}{f' (capped from more)' if cap else ''}; dropped {dict(drops)}")
     return kept
 
 

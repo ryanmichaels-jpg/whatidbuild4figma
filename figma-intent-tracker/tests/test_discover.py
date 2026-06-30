@@ -2,6 +2,7 @@ from discover import (
     DISCOVERY_QUERIES,
     _google_query_specs,
     _merge_candidates,
+    _post_detail_index,
     excluded_reason,
     filter_candidates,
     matched_displaced_tools,
@@ -49,6 +50,16 @@ def test_google_query_specs_are_real_boolean():
     q0 = specs[0][0]
     assert q0.startswith("site:linkedin.com/posts")
     assert '"' in q0 and " OR " in q0  # quoted phrase + boolean OR that Google honors
+
+
+def test_post_detail_index_extracts_body_and_comments():
+    items = [{
+        "post": {"url": "https://www.linkedin.com/posts/x-activity-1?utm=1", "text": "Jitter vs After Effects..."},
+        "stats": {"comments": 136, "total_reactions": 193},
+    }]
+    idx = _post_detail_index(items)
+    rec = idx["https://www.linkedin.com/posts/x-activity-1"]  # query string stripped
+    assert rec["text"].startswith("Jitter") and rec["comments"] == 136 and rec["reactions"] == 193
 
 
 def test_merge_prefers_native_on_url_collision():
