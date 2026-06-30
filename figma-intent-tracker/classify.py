@@ -10,9 +10,18 @@ from __future__ import annotations
 
 import json
 import os
+from collections import Counter
 from functools import lru_cache
 
-from schema import Classification, Commenter, classification_json_schema
+from schema import Classification, Commenter, IntentType, classification_json_schema
+
+# Self-consistency config. Borderline = a surface-eligible call that is easy to flip
+# (low-ish confidence or a one/two-word quote like "Website"). We re-sample those and
+# vote, so a comment that the model labels inconsistently lands consistently.
+SELF_CONSISTENCY_SAMPLES = int(os.environ.get("SELF_CONSISTENCY_SAMPLES", "3"))
+_SURFACE_INTENTS = {IntentType.active_need, IntentType.evaluating}
+# tie-break order: most conservative first
+_INTENT_PRIORITY = [IntentType.noise, IntentType.curious, IntentType.evaluating, IntentType.active_need]
 
 CLASSIFIER_MODEL = os.environ.get("CLASSIFIER_MODEL", "claude-haiku-4-5")
 _RECORDED = os.path.join(os.path.dirname(__file__), "data", "recorded_classifications.json")
@@ -86,5 +95,39 @@ def classify_live(commenter: Commenter, post_type: str | None = None) -> Classif
     return Classification(**json.loads(payload))
 
 
+def _is_borderline(cls: Classification) -> bool:
+    """A surface-eligible call that is easy to flip -> worth re-sampling."""
+    return cls.intent_type in _SURFACE_INTENTS and (
+        cls.confidence < 0.8 or len(cls.evidence_quote.split()) <= 2
+    )
+
+
+def resolve_votes(votes: list[Classification]) -> Classification:
+    """Majority-vote intent across re-samples; conservative tie-break; scale confidence
+    by agreement so a split vote (e.g. 2 active_need / 1 noise) drops below the surface
+    threshold and routes to review instead of flip-flopping."""
+    counts = Counter(v.intent_type for v in votes)
+    top = max(counts.values())
+    winners = [i for i, c in counts.items() if c == top]
+    winner = min(winners, key=lambda i: _INTENT_PRIORITY.index(i))
+    agreement = counts[winner] / len(votes)
+    rep = next(v for v in votes if v.intent_type == winner)
+    return Classification(
+        intent_type=winner,
+        need=rep.need,
+        evidence_quote=rep.evidence_quote,
+        confidence=round(rep.confidence * agreement, 2),
+        suggested_angle=rep.suggested_angle,
+    )
+
+
 def classify(commenter: Commenter, mode: str, post_type: str | None = None) -> Classification:
-    return classify_live(commenter, post_type) if mode == "live" else classify_demo(commenter)
+    if mode != "live":
+        return classify_demo(commenter)
+    first = classify_live(commenter, post_type)
+    if not _is_borderline(first):
+        return first
+    votes = [first] + [
+        classify_live(commenter, post_type) for _ in range(max(0, SELF_CONSISTENCY_SAMPLES - 1))
+    ]
+    return resolve_votes(votes)

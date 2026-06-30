@@ -26,6 +26,21 @@ def test_intern_is_whole_word():
     assert classify_title("International Sales Manager").status != TitleStatus.excluded
 
 
+def test_broadened_design_roles_are_user_icp():
+    assert classify_title("Webflow Developer @ Yes Chef Studio").persona == Persona.user
+    assert classify_title("Digital Content Designer").persona == Persona.user
+    assert classify_title("Senior Presentation Designer | Pitch Decks").persona == Persona.user
+    assert classify_title("Graphic Designer at Fiverr").persona == Persona.user
+
+
+def test_student_is_whole_word_with_service_exception():
+    # genuine student status -> excluded
+    assert classify_title("Computer Science Student at MIT").status == TitleStatus.excluded
+    # 'student support'/'student success' is a service area, not a job seeker
+    assert classify_title("AI Automation for Education | Student Support, Billing").status != TitleStatus.excluded
+    assert classify_title("Student Success Manager").status != TitleStatus.excluded
+
+
 def test_missing_title_routes_to_review_not_drop():
     assert classify_title(None).status == TitleStatus.missing
     assert classify_title("   ").status == TitleStatus.missing

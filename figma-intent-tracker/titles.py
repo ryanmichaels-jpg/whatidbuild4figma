@@ -39,9 +39,16 @@ def classify_title(headline: str | None) -> TitleResult:
         if term in text:
             return TitleResult(status=TitleStatus.excluded, matched_keyword=term)
 
+    exceptions = rules.get("exclude_token_exceptions", {})
     for token in rules["exclude_tokens"]:
-        # whole-word match so 'intern' does not fire on 'internal' or 'international'
-        if re.search(rf"\b{re.escape(token)}\b", text):
+        # whole-word match so 'intern' does not fire on 'internal' or 'international'.
+        # An exception list lets e.g. 'student support'/'student success' (a service
+        # area) avoid the 'student' (job-seeker) exclude via negative lookahead.
+        exc = exceptions.get(token)
+        pat = rf"\b{re.escape(token)}\b"
+        if exc:
+            pat += rf"(?!\s+(?:{'|'.join(re.escape(e) for e in exc)}))"
+        if re.search(pat, text):
             return TitleResult(status=TitleStatus.excluded, matched_keyword=token)
 
     for rule in rules["include"]:
