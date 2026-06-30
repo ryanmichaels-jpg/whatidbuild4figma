@@ -8,6 +8,7 @@ Run:  MODE=demo python pipeline.py   (zero credentials, uses committed fixtures)
 """
 from __future__ import annotations
 
+import csv
 import json
 import os
 from collections import Counter
@@ -73,9 +74,51 @@ def process(commenter: Commenter, post_type: PostType | None, mode: str) -> Lead
     return lead
 
 
+_LEADS_JSON = os.path.join(os.path.dirname(__file__), "data", "leads-live.json")
+_LEADS_CSV = os.path.join(os.path.dirname(__file__), "data", "leads-live.csv")
+
+
+def _lead_record(lead: Lead) -> dict:
+    c, cls, r = lead.commenter, lead.classification, lead.routing
+    return {
+        "decision": lead.decision.value,
+        "richness": lead.richness_label or "",
+        "name": c.name,
+        "headline": (c.headline or "").replace("\n", " "),
+        "company": c.company or "",
+        "persona": lead.title.persona.value if lead.title.persona else "",
+        "intent": cls.intent_type.value if cls else "",
+        "confidence": cls.confidence if cls else "",
+        "post_type": lead.post_type.value if lead.post_type else "",
+        "signal": r.signal_type.value if r else "",
+        "route": r.recipient if r else "",
+        "reason": lead.reason,
+        "evidence_quote": cls.evidence_quote if cls else "",
+        "comment": " ".join(c.comment_text.split()),
+        "profile_url": c.profile_url or "",
+        "post_url": c.post_url or "",
+    }
+
+
+def dump_leads(leads: list[Lead]) -> str:
+    """Persist EVERY lead (the full run output) to gitignored JSON + CSV."""
+    order = {"surface": 0, "review": 1, "drop": 2}
+    records = sorted((_lead_record(x) for x in leads), key=lambda r: order.get(r["decision"], 9))
+    with open(_LEADS_JSON, "w", encoding="utf-8") as fh:
+        json.dump(records, fh, indent=2)
+    if records:
+        with open(_LEADS_CSV, "w", newline="", encoding="utf-8") as fh:
+            w = csv.DictWriter(fh, fieldnames=list(records[0].keys()))
+            w.writeheader()
+            w.writerows(records)
+    return _LEADS_CSV
+
+
 def run_with_posts(mode: str | None = None):
     """Full pipeline. Returns (leads, post_results-by-url)."""
     mode = mode or os.environ.get("MODE", "demo")
+    if mode == "live":
+        extract_mod.reset_live_output()
     posts = discover_mod.discover(mode)
 
     # POST-TYPE GATE: classify every post; only mine the qualifying types.
@@ -153,6 +196,9 @@ def main() -> None:
             notify(lead)
 
     monitoring.append_run_log(metrics, mode, datetime.datetime.utcnow().isoformat() + "Z")
+
+    leads_out = dump_leads(leads)
+    print(f"leads ({len(leads)}) -> {leads_out}")
 
     from dashboard import render
 

@@ -135,6 +135,12 @@ def map_raw_items(raw_items: list[dict], default_post: Optional[str] = None) -> 
     return list(best.values()) + no_url
 
 
+def reset_live_output() -> None:
+    """Truncate the raw-scrape file at the start of a run so it accumulates cleanly."""
+    with open(_LIVE_OUT, "w", encoding="utf-8") as fh:
+        json.dump([], fh)
+
+
 def extract_live(post_urls: list[str]) -> list[Commenter]:
     body = {
         "posts": post_urls,
@@ -144,9 +150,17 @@ def extract_live(post_urls: list[str]) -> list[Commenter]:
     }
     raw_items = run_actor(APIFY_ACTOR, body)
 
-    # provenance: keep the raw scrape locally (gitignored), never committed
+    # provenance: ACCUMULATE the raw scrape locally (gitignored), never committed --
+    # extract runs per post, so append rather than overwrite to keep the whole run.
+    existing = []
+    if os.path.exists(_LIVE_OUT):
+        try:
+            with open(_LIVE_OUT, "r", encoding="utf-8") as fh:
+                existing = json.load(fh)
+        except (json.JSONDecodeError, ValueError):
+            existing = []
     with open(_LIVE_OUT, "w", encoding="utf-8") as fh:
-        json.dump(raw_items, fh, indent=2)
+        json.dump(existing + raw_items, fh, indent=2)
 
     default_post = post_urls[0] if len(post_urls) == 1 else None
     return map_raw_items(raw_items, default_post)
