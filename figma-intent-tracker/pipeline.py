@@ -66,6 +66,9 @@ def process(commenter: Commenter, post_type: PostType | None, mode: str) -> Lead
         account = accounts_mod.match_account(commenter.company, mode)
         lead.account = account
         lead.routing = accounts_mod.route(intent, account, commenter.company)
+        from richness import score_richness
+
+        lead.richness, lead.richness_label = score_richness(commenter.comment_text)
 
     return lead
 

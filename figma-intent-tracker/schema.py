@@ -191,6 +191,8 @@ class Lead(BaseModel):
     reason: str
     post_type: Optional[PostType] = None
     quality_flag: Optional[str] = None  # set when the verification pass downgraded the lead
+    richness: Optional[int] = None      # 0-3: how much the comment says (thin -> rich)
+    richness_label: Optional[str] = None
     account: Optional[Account] = None   # set for actionable (surface/review) leads
     routing: Optional[Routing] = None
 

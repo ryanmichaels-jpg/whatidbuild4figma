@@ -65,9 +65,12 @@ def render(leads: list[Lead], mode: str, post_results: dict | None = None) -> st
         return f"P{r.priority} {r.signal_type.value}" if r else ""
 
     surfaced_rows = ""
-    for x in leads:
-        if x.decision != Decision.surface:
-            continue
+    # richest-signal leads first -- a rep should see substantive comments before bare hand-raises
+    surfaced = sorted(
+        (x for x in leads if x.decision == Decision.surface),
+        key=lambda x: x.richness or 0, reverse=True,
+    )
+    for x in surfaced:
         c, cls = x.commenter, x.classification
         route = x.routing.recipient if x.routing else ""
         surfaced_rows += (
@@ -77,6 +80,7 @@ def render(leads: list[Lead], mode: str, post_results: dict | None = None) -> st
             f"<td>{html.escape(c.company or '')}</td>"
             f"<td>{html.escape(_acct_cell(x))}</td>"
             f"<td>{html.escape(_signal_cell(x))}</td>"
+            f"<td>{html.escape(x.richness_label or '')}</td>"
             f"<td>{html.escape(route)}</td>"
             f"<td>{x.title.persona.value}/{cls.intent_type.value} {cls.confidence:.2f}</td>"
             f'<td class="q">"{html.escape(cls.evidence_quote)}"</td>'
@@ -157,8 +161,8 @@ Praise-mislabels downgraded by verification: <b>{downgrades}</b></p>
 <b>Customer vs net-new</b>{customer_html}
 
 <h2>Surfaced leads ({f['surfaced']})</h2>
-<table><tr><th>Name</th><th>Headline</th><th>Company</th><th>Salesforce account</th><th>Signal</th><th>Route to</th><th>Persona/Intent</th><th>Evidence (verbatim)</th></tr>
-{surfaced_rows or '<tr><td colspan="8"><em>none</em></td></tr>'}
+<table><tr><th>Name</th><th>Headline</th><th>Company</th><th>Salesforce account</th><th>Signal</th><th>Richness</th><th>Route to</th><th>Persona/Intent</th><th>Evidence (verbatim)</th></tr>
+{surfaced_rows or '<tr><td colspan="9"><em>none</em></td></tr>'}
 </table>
 
 <h2>Business impact</h2>

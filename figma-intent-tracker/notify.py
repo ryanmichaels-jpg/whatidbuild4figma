@@ -25,8 +25,9 @@ def build_payload(lead: Lead) -> dict:
     if r:
         header = f"*[P{r.priority}] {r.signal_type.value.upper()} signal* ({persona} / {cls.intent_type.value}, conf {cls.confidence:.2f})"
 
+    richness = f"  |  signal: {lead.richness_label}" if lead.richness_label else ""
     lines = [
-        header,
+        header + richness,
         f"*{c.name}* -- {c.headline or 'no title'}",
         f"Company: {c.company or 'unknown'}",
     ]
