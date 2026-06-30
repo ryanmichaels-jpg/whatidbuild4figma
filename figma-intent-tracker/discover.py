@@ -19,20 +19,32 @@ from typing import Optional
 
 from apify_run import run_actor
 
-# LinkedIn search queries shaped to surface lead-magnet / hand-raiser posts where
-# the COMMENTERS are in-market for a design/UI tool -- people trying to do what
-# Figma does (often via Claude / AI), asking for a guide. We do NOT require the
-# word "Figma": the goal is design-tool demand, not Figma-churn specifically.
-DISCOVERY_QUERIES = [
+# Discovery queries come from the Config-2026 displacement map: for each Figma
+# surface, hunt engagement-bait posts about the COMPETITOR tool/workflow Figma now
+# displaces (After Effects -> Figma Motion, Webflow -> Sites, design-to-code ->
+# Code Layers, etc.). The commenters on those posts are in-market for what Figma does.
+_DISP = os.path.join(os.path.dirname(__file__), "data", "displacement_map.json")
+
+_FALLBACK_QUERIES = [
     "comment and I'll send you the guide design UI",
-    "comment guide Claude design",
-    "build your UI with Claude code comment",
-    "design in Claude comment below guide",
-    "how to design app UI without Figma comment",
-    "I'll DM you the prompts to design comment",
-    "vibe code your UI design comment guide",
-    "AI design tool comment below guide",
+    "After Effects alternative UI animation comment",
+    "design to code workflow comment guide",
+    "build a website no code comment guide",
+    "pitch deck design comment guide",
 ]
+
+
+def _displacement_queries() -> list[str]:
+    try:
+        with open(_DISP, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        qs = [q for s in data["surfaces"].values() for q in s.get("queries", [])]
+        return qs or _FALLBACK_QUERIES
+    except (FileNotFoundError, KeyError, json.JSONDecodeError):
+        return _FALLBACK_QUERIES
+
+
+DISCOVERY_QUERIES = _displacement_queries()
 
 # Cues that the post BODY is engagement bait (author harvesting commenters).
 BAIT_CUES = [

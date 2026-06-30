@@ -27,9 +27,9 @@
       "displaces": ["Miro", "Mural", "Lucidchart", "whiteboard in Excalidraw"]
     },
     "dev_mode": {
-      "what": "Design-to-code handoff: inspect designs, extract code-ready assets, Code Layers (design <-> interactive code on canvas).",
-      "use_cases": ["design-to-code handoff", "frontend from design", "inspect & spec a design", "code layers"],
-      "displaces": ["manual handoff", "Zeplin", "Avocode"]
+      "what": "Design-to-code handoff: inspect designs, extract code-ready assets, Code Layers (clone repos into Figma, real code on canvas, AI code gen, sync back to source).",
+      "use_cases": ["design-to-code handoff", "frontend from design", "Figma to React/HTML", "inspect & spec a design", "code layers", "eliminate designer-developer handoff"],
+      "displaces": ["manual designer-to-developer handoff", "Anima", "Locofy", "Builder.io", "Zeplin"]
     },
     "draw": {
       "what": "Illustration and expressive vector editing: brushes, transforms, textures, shaders, 3D transforms.",
@@ -42,9 +42,9 @@
       "displaces": ["Canva", "Adobe Express", "AI image tools for brand assets"]
     },
     "motion": {
-      "what": "Animation on the canvas: timeline, keyframes, presets; export to CSS/React/MP4/WebM/SVG/GIF; 3D transforms.",
-      "use_cases": ["animate a design", "motion design", "UI animation/microinteractions", "replace After Effects for UI"],
-      "displaces": ["After Effects", "Jitter", "Rive (basic)", "Lottie hand-authoring"]
+      "what": "Figma Motion: animation on the canvas -- timeline, keyframes, presets, AI-generated motion; export to CSS/React/MP4/WebM/SVG/GIF; 3D transforms. Pitch: no After Effects, no tool switching for UI animation.",
+      "use_cases": ["animate a design", "motion design", "UI animation/microinteractions", "get off After Effects for UI", "page transitions", "onboarding animations"],
+      "displaces": ["After Effects (UI animation)", "Jitter", "Rive", "Lottie hand-authoring", "Principle", "ProtoPie"]
     }
   },
   "not_figma": [
