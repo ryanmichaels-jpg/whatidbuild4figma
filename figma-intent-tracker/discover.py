@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections import Counter
 import os
 from typing import Optional
 
@@ -144,6 +145,7 @@ def discover_live(
         if url in by_url:
             continue
         content = it.get("content") or ""
+        author = it.get("author") or {}
         reactions = it.get("engagement", {}).get("reactions")
         reaction_count = sum(r.get("count", 0) for r in reactions) if isinstance(reactions, list) else 0
         matched = matched_displaced_tools(content)
@@ -151,6 +153,8 @@ def discover_live(
             "url": url,
             "title": content.split("\n", 1)[0][:140] or "(no text)",
             "content": content,
+            "author": author.get("name", ""),
+            "author_headline": author.get("headline", ""),
             "comment_count": _comment_count(it),
             "reaction_count": reaction_count,
             "bait_score": bait_score(content),
@@ -164,5 +168,67 @@ def discover_live(
     return posts
 
 
+# --- Smart layer: emulate the boolean query the actor can't run ------------------
+# The actor is fuzzy keyword-only (no AND/OR/NOT/quotes). We get recall from many
+# simple queries (OR), then enforce precision in code: require a displaced-tool
+# mention (AND), require a bait cue if asked (AND), and drop off-domain noise (NOT).
+
+# NOT clause: clear non-Figma domains that keep polluting results.
+STOP_LIST = [
+    "outbound", "cold email", "cold outreach", "appointment setting", "lead generation",
+    "real estate", "realtor", "crypto", "blockchain", "web3", "nft", "forex", "dropship",
+    "network marketing", "affiliate marketing", "we're hiring", "open to work",
+]
+_FOLLOWER_HEADLINE = re.compile(r"^\s*[\d,]+\s+followers\s*$", re.I)
+
+
+def excluded_reason(content: str, author_headline: str = "") -> str | None:
+    """NOT clause: why a post is off-domain noise, or None to keep it."""
+    blob = f"{content} {author_headline}".lower()
+    for term in STOP_LIST:
+        if re.search(rf"\b{re.escape(term)}\b", blob):
+            return term
+    if _FOLLOWER_HEADLINE.match(author_headline or ""):
+        return "follower-count account"
+    return None
+
+
+def filter_candidates(posts: list[dict], require_tool: bool = True, require_bait: bool = False):
+    """Apply AND/NOT precision to the recalled candidates. Returns (kept, drop_reasons)."""
+    kept, drops = [], Counter()
+    for p in posts:
+        ex = excluded_reason(p.get("content", ""), p.get("author_headline", ""))
+        if ex:
+            drops[f"stop:{ex}"] += 1
+            continue
+        if require_tool and not p.get("matched_tools"):
+            drops["no_displaced_tool"] += 1
+            continue
+        if require_bait and not p.get("bait_score"):
+            drops["no_bait_cue"] += 1
+            continue
+        kept.append(p)
+    kept.sort(
+        key=lambda p: (len(p.get("matched_tools", [])), p.get("bait_score", 0), p.get("comment_count", 0)),
+        reverse=True,
+    )
+    return kept, drops
+
+
+def smart_discover(
+    queries: Optional[list[str]] = None,
+    max_posts: Optional[int] = None,
+    posted_limit: str = "6months",
+    require_tool: bool = True,
+    require_bait: bool = False,
+) -> list[dict]:
+    """Recall via the dumb actor, precision via client-side boolean filtering."""
+    posts = discover_live(queries=queries, max_posts=max_posts, posted_limit=posted_limit)
+    kept, drops = filter_candidates(posts, require_tool=require_tool, require_bait=require_bait)
+    kept_n, total = len(kept), len(posts)
+    print(f"[smart_discover] {total} recalled -> {kept_n} kept; dropped {dict(drops)}")
+    return kept
+
+
 def discover(mode: str, **kwargs) -> list[dict]:
-    return discover_live(**kwargs) if mode == "live" else discover_demo()
+    return smart_discover(**kwargs) if mode == "live" else discover_demo()
