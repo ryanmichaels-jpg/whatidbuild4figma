@@ -1,18 +1,24 @@
 {
-  "_comment": "Recorded post-type judgments for demo mode (zero credentials). The off_topic post is an ICP-commenter trap: a real product designer comments on it, but the post is not about design tooling, so the post stage drops it before any comment is mined.",
+  "_comment": "Recorded post judgments for demo mode. Each post is scored on structure (post_type) AND Figma overlap (figma_surface = which Figma product could displace the use case; none if Figma can't). qualifies = tool-revealing structure AND a Figma-solvable use case. The off_topic post maps to figma_surface=none, so it is dropped even though a real designer commented on it.",
   "https://www.linkedin.com/posts/demo-post-pricing-change": {
     "post_type": "tool_question",
+    "figma_surface": "design",
+    "use_case": "choosing a UI/product design tool after a price change",
     "tools_mentioned": ["Figma"],
-    "reason": "asks what teams are switching to after the pricing change"
+    "reason": "asks what design tool teams are switching to -- core Figma Design overlap"
   },
   "https://www.linkedin.com/posts/demo-post-migration-guide": {
     "post_type": "lead_magnet",
+    "figma_surface": "design",
+    "use_case": "migrating to a Figma-alternative design tool",
     "tools_mentioned": ["Figma"],
-    "reason": "comment to receive the Figma-alternative migration guide"
+    "reason": "comment for a design-tool migration guide -- Figma Design overlap"
   },
   "https://www.linkedin.com/posts/demo-post-offtopic": {
     "post_type": "off_topic",
+    "figma_surface": "none",
+    "use_case": "P&L margins and company exits",
     "tools_mentioned": [],
-    "reason": "about P&L margins and exits, not design/build tooling"
+    "reason": "about financials, not a use case Figma can solve"
   }
 }

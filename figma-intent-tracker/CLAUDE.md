@@ -3,13 +3,16 @@
 The agent is small; the trust layer is the product. Do not let this become a
 generic scrape-and-spam pipeline. Hold these invariants:
 
-0. **Post type is the first gate.** `posttype.py` classifies each post before any
-   comment is mined. Only `lead_magnet` / `tool_question` / `tool_comparison` qualify
-   (`QUALIFYING_POST_TYPES`); showcases and off_topic posts are dropped -- never
-   scrape their comments. The post must be about design/build TOOLING (names tools or
-   asks what tools others use), not generic "design." The comment classifier is
-   conditioned on the post type (a short comment is a hand-raise on a lead_magnet,
-   noise on a hype post).
+0. **Post is the first gate, on TWO axes.** `posttype.py` classifies each post before
+   any comment is mined. A post qualifies only if BOTH hold: (a) structure -- post_type
+   in `lead_magnet` / `tool_question` / `tool_comparison` (commenting reveals tooling
+   intent); AND (b) Figma overlap -- `figma_surface != none`, i.e. the use case the
+   poster is offering is something Figma could DISPLACE, mapped against
+   `data/figma_capabilities.json` (the Config-2026 surface map: design/make/sites/
+   slides/figjam/dev_mode/draw/buzz/motion). "Build a website" -> sites; "make a deck"
+   -> slides; "interior room redesign" / CAD / pure engineering -> none -> dropped.
+   Keep the capability map current with Figma's actual product surface. The comment
+   classifier is conditioned on the post type.
 
 1. **Deterministic ICP filter runs BEFORE any LLM call.** `titles.py` decides who
    reaches the model. Off-ICP commenters must never cost a token. Adding intent

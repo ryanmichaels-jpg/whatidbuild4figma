@@ -65,6 +65,21 @@ class PostType(str, Enum):
 QUALIFYING_POST_TYPES = {PostType.lead_magnet, PostType.tool_question, PostType.tool_comparison}
 
 
+class FigmaSurface(str, Enum):
+    """Which Figma product (post-Config 2026) could displace the post's use case."""
+
+    design = "design"
+    make = "make"
+    sites = "sites"
+    slides = "slides"
+    figjam = "figjam"
+    dev_mode = "dev_mode"
+    draw = "draw"
+    buzz = "buzz"
+    motion = "motion"
+    none = "none"  # Figma cannot displace this use case
+
+
 class PlanTier(str, Enum):
     """Figma account plan, from Salesforce."""
 
@@ -86,10 +101,18 @@ class SignalType(str, Enum):
 
 
 class PostClassification(BaseModel):
-    """Schema-constrained post-type judgment. Decides if a post is worth mining."""
+    """Schema-constrained post judgment.
+
+    Two axes decide if a post is worth mining: the structure (post_type -- does
+    commenting reveal tooling intent?) and the Figma overlap (figma_surface -- could
+    Figma displace the solution the poster is offering?). A post qualifies only if
+    both hold: a tool-revealing structure AND a use case Figma actually solves.
+    """
 
     post_type: PostType
-    qualifies: bool                     # convenience: post_type in QUALIFYING_POST_TYPES
+    figma_surface: FigmaSurface = FigmaSurface.none
+    use_case: str = ""                  # what the poster is offering / addressing
+    qualifies: bool                     # post_type in QUALIFYING AND figma_surface != none
     tools_mentioned: list[str] = []
     reason: str
     source: str = "demo"

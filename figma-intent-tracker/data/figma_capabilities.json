@@ -1,0 +1,58 @@
+{
+  "_comment": "Figma's product surface as of Config 2026, used to judge whether a post's use case is something Figma could DISPLACE. A post qualifies as a lead source only if the solution the poster is offering maps to one of these surfaces. Sources: figma.com/blog/config-2026-recap, help.figma.com What's new from Config 2026, figma.com product pages.",
+  "surfaces": {
+    "design": {
+      "what": "Core UI/UX product design: web & mobile interfaces, components, design systems, variables, auto layout, prototyping.",
+      "use_cases": ["design an app UI", "product/UX design", "build a design system", "wireframe & prototype", "interactive prototypes"],
+      "displaces": ["Sketch", "Adobe XD", "Penpot", "hand-coded UI mockups"]
+    },
+    "make": {
+      "what": "AI prompt-to-product: generate functional, interactive web/mobile apps and landing pages from text prompts.",
+      "use_cases": ["build an app from a prompt", "vibe-code a UI", "spin up a landing page", "prototype a working product"],
+      "displaces": ["Claude / Claude Code for app building", "Cursor", "v0", "Bolt", "Lovable", "Replit"]
+    },
+    "sites": {
+      "what": "Design and publish websites with no code, including CMS.",
+      "use_cases": ["build a website", "publish a marketing site", "client websites", "no-code web build"],
+      "displaces": ["Webflow", "Framer", "Wix", "Squarespace", "Claude Code for websites"]
+    },
+    "slides": {
+      "what": "Presentation tool built for designers: live collaborative decks, clickable prototypes in slides, design reviews.",
+      "use_cases": ["build a deck", "pitch / investor deck", "presentation design", "slides"],
+      "displaces": ["PowerPoint", "Keynote", "Google Slides", "Gamma", "Claude for decks", "Beautiful.ai"]
+    },
+    "figjam": {
+      "what": "Online whiteboard for diagrams, flowcharts, brainstorms, planning, workshops, research, journey maps.",
+      "use_cases": ["diagram a system/architecture", "map a workflow", "brainstorm / workshop", "flowchart", "journey map", "plan a project"],
+      "displaces": ["Miro", "Mural", "Lucidchart", "whiteboard in Excalidraw"]
+    },
+    "dev_mode": {
+      "what": "Design-to-code handoff: inspect designs, extract code-ready assets, Code Layers (design <-> interactive code on canvas).",
+      "use_cases": ["design-to-code handoff", "frontend from design", "inspect & spec a design", "code layers"],
+      "displaces": ["manual handoff", "Zeplin", "Avocode"]
+    },
+    "draw": {
+      "what": "Illustration and expressive vector editing: brushes, transforms, textures, shaders, 3D transforms.",
+      "use_cases": ["vector illustration", "expressive graphics", "icon/illustration design", "textures & shaders"],
+      "displaces": ["Adobe Illustrator", "Procreate (vector)", "Affinity Designer"]
+    },
+    "buzz": {
+      "what": "AI-enhanced, on-brand marketing content/asset creation at scale for brands.",
+      "use_cases": ["on-brand marketing assets", "social graphics at scale", "brand templates"],
+      "displaces": ["Canva", "Adobe Express", "AI image tools for brand assets"]
+    },
+    "motion": {
+      "what": "Animation on the canvas: timeline, keyframes, presets; export to CSS/React/MP4/WebM/SVG/GIF; 3D transforms.",
+      "use_cases": ["animate a design", "motion design", "UI animation/microinteractions", "replace After Effects for UI"],
+      "displaces": ["After Effects", "Jitter", "Rive (basic)", "Lottie hand-authoring"]
+    }
+  },
+  "not_figma": [
+    "interior / room / home decor design (spatial)",
+    "physical product / industrial / CAD design",
+    "general business / marketing / sales coaching with no design tool",
+    "data engineering, code review, refactoring, test automation (pure software engineering)",
+    "photo retouching as an end in itself (raster photo editing)",
+    "fashion / jewelry / 3D-print CAD"
+  ]
+}

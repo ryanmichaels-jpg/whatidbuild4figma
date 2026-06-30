@@ -1,15 +1,19 @@
-"""POST-TYPE stage: decide if a post is worth mining, BEFORE touching its comments.
+"""POST stage: decide if a post is worth mining, BEFORE touching its comments.
 
-This runs first. The same comment means different things depending on the post, so
-we classify the post and only mine the types where commenters reveal their tooling:
-lead_magnet ("comment 'guide' and I'll send it"), tool_question ("what are you using
-instead of X?"), and tool_comparison ("Figma Motion vs After Effects?"). Showcases/
-tutorials (mostly praise) and off_topic posts (not about design/build tooling) are
-dropped here -- so we never spend comment-scraping or LLM budget on them.
+Two questions, both must be yes:
+  1. STRUCTURE -- does commenting reveal tooling intent? (post_type in lead_magnet /
+     tool_question / tool_comparison; showcases and off_topic do not).
+  2. FIGMA OVERLAP -- could Figma DISPLACE the solution the poster is offering? We
+     map the post's use case to a Figma surface (design, make, sites, slides, figjam,
+     dev_mode, draw, buzz, motion) using the Config-2026 capability map. If Figma
+     can't do it (interior decor, CAD, pure software engineering, business coaching),
+     figma_surface = none and the post is dropped.
 
-A deterministic lead-magnet detector catches the highest-value structure for free;
-otherwise a cheap schema-constrained LLM call types the post. Demo mode replays
-recorded post classifications (zero credentials).
+The logic: if a poster offers something Figma also solves, and people comment to get
+help/resources in that area, those commenters are in-market for what Figma does.
+
+A deterministic "comment-for-asset" detector hints the lead_magnet structure; the
+LLM still judges Figma overlap. Demo mode replays recorded judgments (zero creds).
 """
 from __future__ import annotations
 
@@ -18,12 +22,12 @@ import os
 import re
 from functools import lru_cache
 
-from schema import QUALIFYING_POST_TYPES, PostClassification, PostType
+from schema import QUALIFYING_POST_TYPES, FigmaSurface, PostClassification, PostType
 
 POST_CLASSIFIER_MODEL = os.environ.get("POST_CLASSIFIER_MODEL", "claude-haiku-4-5")
 _RECORDED = os.path.join(os.path.dirname(__file__), "data", "demo_post_classifications.json")
+_CAPS = os.path.join(os.path.dirname(__file__), "data", "figma_capabilities.json")
 
-# Deterministic "comment to get the asset" structure -- the clearest lead_magnet signal.
 _LEAD_MAGNET_CUES = [
     r"comment\b.{0,30}\bi'?ll (send|dm|share)",
     r"\btype\b\s+[\"'a-z]+\s+(below|in the comments)",
@@ -33,47 +37,62 @@ _LEAD_MAGNET_CUES = [
     r"\bcomment\b.{0,20}\bbelow\b.{0,40}\b(guide|link|template|playbook|pdf)",
 ]
 
-SYSTEM_PROMPT = (
-    "You decide whether a LinkedIn post is a useful lead source for a design/build "
-    "TOOLING vendor (e.g. Figma -- design, FigJam, Dev Mode, Make). A post QUALIFIES "
-    "only if it is specifically about design/build tooling: it (a) names specific "
-    "design/build tools (Figma, FigJam, Sketch, Adobe XD, Photoshop, Illustrator, "
-    "Framer, Webflow, Canva, Penpot, Claude, Cursor, v0, Bolt, Lovable, etc.) AND "
-    "offers a tool/workflow guide to comment for, OR (b) asks what tools others use / "
-    "compares tools / solicits tool recommendations or alternatives. It does NOT "
-    "qualify on the generic word 'design' (design thinking, design your career, org "
-    "design), nor on unrelated topics (finance, HR, real estate), nor on a tutorial "
-    "that merely USES a tool without asking about tool choice. Classify the post type. "
-    "Return only JSON."
-)
+
+@lru_cache(maxsize=1)
+def _capability_summary() -> str:
+    with open(_CAPS, "r", encoding="utf-8") as fh:
+        caps = json.load(fh)
+    lines = []
+    for key, s in caps["surfaces"].items():
+        lines.append(f"- {key}: {s['what']} (displaces: {', '.join(s['displaces'][:4])})")
+    not_figma = "; ".join(caps["not_figma"])
+    return "FIGMA SURFACES:\n" + "\n".join(lines) + f"\n\nNOT FIGMA (figma_surface=none): {not_figma}"
+
+
+def _system_prompt() -> str:
+    return (
+        "You triage LinkedIn posts as lead sources for Figma. For each post decide:\n"
+        "1) post_type: lead_magnet (offers an asset to comment for) / tool_question (asks "
+        "what tools people use) / tool_comparison (compares/weighs tools) / showcase "
+        "(shows a build, no tool-choice ask) / off_topic.\n"
+        "2) figma_surface: which Figma surface could DISPLACE the solution the poster is "
+        "offering or discussing -- i.e. could a person doing this instead do it in Figma? "
+        "Use 'none' if Figma cannot solve this use case.\n"
+        "Judge overlap by the USE CASE, not the word 'design'. Building a website -> sites; "
+        "making a deck -> slides; building an app/UI from a prompt -> make; animating UI -> "
+        "motion; diagramming/whiteboarding -> figjam; UI/product design -> design. Interior "
+        "room redesign, CAD, photo retouching, code review/refactoring, and business coaching "
+        "are NOT Figma (none).\n\n" + _capability_summary() + "\n\nReturn only JSON."
+    )
+
 
 _POST_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
-    "required": ["post_type", "tools_mentioned", "reason"],
+    "required": ["post_type", "figma_surface", "use_case", "tools_mentioned", "reason"],
     "properties": {
         "post_type": {
             "type": "string",
             "enum": [e.value for e in PostType],
-            "description": (
-                "lead_magnet: offers an asset to comment for; tool_question: asks what "
-                "tools others use; tool_comparison: compares/weighs named tools; showcase: "
-                "shows a build/tutorial (no tool-choice ask); off_topic: not about tooling."
-            ),
+            "description": "lead_magnet / tool_question / tool_comparison / showcase / off_topic",
         },
+        "figma_surface": {
+            "type": "string",
+            "enum": [e.value for e in FigmaSurface],
+            "description": "Which Figma surface could displace the post's use case; 'none' if Figma can't.",
+        },
+        "use_case": {"type": "string", "description": "What the poster is offering or addressing, in a few words."},
         "tools_mentioned": {"type": "array", "items": {"type": "string"}},
         "reason": {"type": "string", "description": "one short sentence"},
     },
 }
 
 
-def _finalize(post_type: PostType, tools: list[str], reason: str, source: str) -> PostClassification:
+def _finalize(post_type, figma_surface, use_case, tools, reason, source) -> PostClassification:
+    qualifies = post_type in QUALIFYING_POST_TYPES and figma_surface != FigmaSurface.none
     return PostClassification(
-        post_type=post_type,
-        qualifies=post_type in QUALIFYING_POST_TYPES,
-        tools_mentioned=tools,
-        reason=reason,
-        source=source,
+        post_type=post_type, figma_surface=figma_surface, use_case=use_case,
+        qualifies=qualifies, tools_mentioned=tools, reason=reason, source=source,
     )
 
 
@@ -92,22 +111,24 @@ def classify_post_demo(post: dict) -> PostClassification:
     rec = _recorded().get(post["url"])
     if rec is None:
         raise KeyError(f"no recorded post classification for {post['url']}")
-    return _finalize(PostType(rec["post_type"]), rec.get("tools_mentioned", []), rec["reason"], "demo")
+    return _finalize(
+        PostType(rec["post_type"]),
+        FigmaSurface(rec.get("figma_surface", "none")),
+        rec.get("use_case", ""),
+        rec.get("tools_mentioned", []),
+        rec["reason"],
+        "demo",
+    )
 
 
 def classify_post_live(post: dict) -> PostClassification:
     content = post.get("content") or post.get("title") or ""
-
-    # The comment-for-asset structure is a HINT, not an override: a lead magnet only
-    # qualifies if its asset is about design/build tooling. Passing the hint (rather
-    # than hard-returning lead_magnet) lets the model still reject off-topic bait
-    # like a "40+ free AI tools" guide or a color-theory PDF.
     hint = ""
     if detect_lead_magnet(content):
         hint = (
-            "\n\nNote: this post has a 'comment for an asset' call-to-action. Classify it "
-            "lead_magnet ONLY if the asset is about design/build tooling; otherwise it is "
-            "off_topic (a lead magnet for an unrelated topic does not qualify)."
+            "\n\nNote: this post has a 'comment for an asset' call-to-action. If its asset "
+            "maps to a Figma surface, it is lead_magnet; if the asset is off Figma's surface "
+            "(figma_surface=none), it is off_topic."
         )
 
     from anthropic import Anthropic
@@ -115,13 +136,16 @@ def classify_post_live(post: dict) -> PostClassification:
     client = Anthropic()
     resp = client.messages.create(
         model=POST_CLASSIFIER_MODEL,
-        max_tokens=300,
-        system=SYSTEM_PROMPT,
+        max_tokens=350,
+        system=_system_prompt(),
         messages=[{"role": "user", "content": content[:1200] + hint}],
         output_config={"format": {"type": "json_schema", "schema": _POST_SCHEMA}},
     )
-    payload = json.loads("".join(b.text for b in resp.content if getattr(b, "type", None) == "text"))
-    return _finalize(PostType(payload["post_type"]), payload.get("tools_mentioned", []), payload["reason"], "live")
+    p = json.loads("".join(b.text for b in resp.content if getattr(b, "type", None) == "text"))
+    return _finalize(
+        PostType(p["post_type"]), FigmaSurface(p["figma_surface"]),
+        p.get("use_case", ""), p.get("tools_mentioned", []), p["reason"], "live",
+    )
 
 
 def classify_post(post: dict, mode: str) -> PostClassification:

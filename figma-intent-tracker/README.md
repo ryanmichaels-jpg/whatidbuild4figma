@@ -43,11 +43,17 @@ DASHBOARD static HTML: post-type gate, funnel, quality checks, persona/intent,
           account routing, precision vs golden, impact (blank)
 ```
 
-The post type is the prior. The same comment means different things on different
-posts -- "interested" is a hand-raise on a lead-magnet post and noise on a launch-
-hype post -- so the post is classified first, off-topic/tooling-irrelevant posts
-are dropped before they cost anything, and the comment classifier is told the post
-type so it reads short comments in context.
+The post is the prior, judged on two axes before a single comment is mined:
+**structure** (is this a lead_magnet / tool_question / tool_comparison, where
+commenting reveals tooling intent?) and **Figma overlap** (could Figma *displace*
+the solution the poster is offering?). The second axis maps the post's use case to
+a Figma surface using `data/figma_capabilities.json` -- the Config-2026 product map
+(design, make, sites, slides, figjam, dev_mode, draw, buzz, motion). "Build a
+website" -> Figma Sites; "make a deck" -> Figma Slides; "redesign a room" / CAD /
+pure code-review -> none -> dropped. The insight: if a poster offers something
+Figma also solves and people comment for help in that area, those commenters are
+in-market for what Figma does. The comment classifier is also told the post type so
+it reads short comments ("Website", "interested") in context.
 
 The trust layer, concretely:
 
