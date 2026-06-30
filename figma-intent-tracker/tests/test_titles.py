@@ -50,6 +50,17 @@ def test_present_but_unrecognized_is_off_icp():
     assert classify_title("Marketing Manager at Foobar").status == TitleStatus.off_icp
 
 
+def test_cpo_disambiguation():
+    # full phrase still maps to economic_buyer
+    assert classify_title("Chief Product Officer at Acme").persona == Persona.economic_buyer
+    # Chief People Officer (HR) must NOT be an economic buyer
+    assert classify_title("Chief People Officer at BigCo").status != TitleStatus.matched
+    # the live false positive: HR founder is a builder (via 'founder'), not a product buyer
+    assert classify_title("Founder & Fractional CPO | Vybrant HR").persona == Persona.builder
+    # HR context blocks the buyer persona even if a product title appears
+    assert classify_title("VP of Product | Head of People & Culture").persona != Persona.economic_buyer
+
+
 def test_builder_prospect_tier():
     assert classify_title("Founder & Indie Hacker").persona == Persona.builder
     assert classify_title("Product Manager at Acme").persona == Persona.builder

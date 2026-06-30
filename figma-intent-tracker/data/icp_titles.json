@@ -6,7 +6,7 @@
     { "keywords": ["head of design", "head of ux", "design director", "director of design", "director of product design"], "persona": "champion" },
     { "keywords": ["design lead", "ux lead", "product design lead", "lead designer", "principal designer", "staff designer", "design manager"], "persona": "champion" },
     { "keywords": ["vp of design", "chief design officer", "cdo"], "persona": "economic_buyer" },
-    { "keywords": ["cpo", "chief product officer", "vp of product", "head of product", "director of product"], "persona": "economic_buyer" },
+    { "keywords": ["chief product officer", "vp of product", "head of product", "director of product"], "persona": "economic_buyer" },
     { "keywords": ["vp of engineering", "head of engineering", "director of engineering", "engineering manager"], "persona": "economic_buyer" },
     { "keywords": ["product designer", "ux designer", "ui designer", "ux researcher", "design engineer", "ui/ux", "ux/ui", "web designer"], "persona": "user" },
     { "keywords": ["webflow", "content designer", "visual designer", "graphic designer", "creative designer", "presentation designer", "presentation specialist", "motion designer", "brand designer", "art director", "art direction", "digital designer"], "persona": "user" },
