@@ -14,6 +14,7 @@ harvesting commenters". Demo mode reads committed synthetic posts.
 from __future__ import annotations
 
 import json
+import re
 import os
 from typing import Optional
 
@@ -34,17 +35,41 @@ _FALLBACK_QUERIES = [
 ]
 
 
-def _displacement_queries() -> list[str]:
+def _load_displacement() -> dict:
     try:
         with open(_DISP, "r", encoding="utf-8") as fh:
-            data = json.load(fh)
-        qs = [q for s in data["surfaces"].values() for q in s.get("queries", [])]
-        return qs or _FALLBACK_QUERIES
+            return json.load(fh)["surfaces"]
     except (FileNotFoundError, KeyError, json.JSONDecodeError):
-        return _FALLBACK_QUERIES
+        return {}
+
+
+def _displacement_queries() -> list[str]:
+    qs = [q for s in _load_displacement().values() for q in s.get("queries", [])]
+    return qs or _FALLBACK_QUERIES
+
+
+# name -> surface, for every displaced tool in the map (lowercased) -- used to confirm
+# a discovered post is actually ABOUT a tool Figma displaces (precision over loose search).
+def _displaced_tools() -> dict:
+    out = {}
+    for surface, s in _load_displacement().items():
+        for tool in s.get("tool_keywords", []):
+            out[tool.lower()] = surface
+    return out
 
 
 DISCOVERY_QUERIES = _displacement_queries()
+DISPLACED_TOOLS = _displaced_tools()
+
+
+def matched_displaced_tools(text: str) -> list[str]:
+    """Which Figma-displaced tools the post body names (e.g. 'after effects', 'webflow').
+
+    Whole-word match so 'anima' (the handoff tool) does not fire on 'animation', and
+    'rive' does not fire on 'arrive'.
+    """
+    low = (text or "").lower()
+    return sorted({t for t in DISPLACED_TOOLS if re.search(rf"\b{re.escape(t)}\b", low)})
 
 # Cues that the post BODY is engagement bait (author harvesting commenters).
 BAIT_CUES = [
@@ -121,6 +146,7 @@ def discover_live(
         content = it.get("content") or ""
         reactions = it.get("engagement", {}).get("reactions")
         reaction_count = sum(r.get("count", 0) for r in reactions) if isinstance(reactions, list) else 0
+        matched = matched_displaced_tools(content)
         by_url[url] = {
             "url": url,
             "title": content.split("\n", 1)[0][:140] or "(no text)",
@@ -128,11 +154,13 @@ def discover_live(
             "comment_count": _comment_count(it),
             "reaction_count": reaction_count,
             "bait_score": bait_score(content),
+            "matched_tools": matched,  # Figma-displaced tools named in the post
+            "surfaces": sorted({DISPLACED_TOOLS[t] for t in matched}),
         }
 
     posts = list(by_url.values())
-    # bait posts first (we want them), then by comment volume (the engagement proxy)
-    posts.sort(key=lambda p: (p["bait_score"], p["comment_count"]), reverse=True)
+    # precision: posts that actually name a Figma-displaced tool first, then bait, then volume
+    posts.sort(key=lambda p: (bool(p["matched_tools"]), p["bait_score"], p["comment_count"]), reverse=True)
     return posts
 
 

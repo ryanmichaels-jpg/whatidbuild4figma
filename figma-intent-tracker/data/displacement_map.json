@@ -1,92 +1,103 @@
 {
-  "_comment": "Config-2026 displacement map. For each Figma surface: the new capability, the competitor tools/workflows it now displaces, and the LinkedIn engagement-bait themes + search queries whose COMMENTERS are in-market for what Figma now does. Discovery hunts these posts; the post-type/displaceability gate confirms overlap. Keep current with Figma's roadmap.",
+  "_comment": "Config-2026 displacement map. Strategy: find posts where someone TEACHES a SPECIFIC tool Figma now displaces, using an engagement hook ('comment and I'll send the guide'). The commenters asking for that tool's guide are doing -- the hard way, in an external tool -- exactly what a new Figma feature now does natively, so they are in-market for Figma. Each query names the displaced tool + a guide/tutorial asset + a comment/DM bait modifier. `tool_keywords` are the clean names used to confirm a discovered post actually mentions a displaced tool (whole-word match).",
   "surfaces": {
     "motion": {
-      "figma_feature": "Figma Motion -- timeline animations, transitions, 3D transforms, AI-generated motion, dev-ready export",
-      "displaces": ["After Effects (UI animation)", "Jitter", "Rive", "Lottie hand-authoring", "Principle", "ProtoPie"],
-      "lead_signal": "designers wanting to drop After Effects/Jitter for UI animation and microinteractions",
+      "figma_feature": "Figma Motion -- native keyframe animations & micro-interactions, AI-generated motion, dev-ready export",
+      "displaces": ["Adobe After Effects (UI animation)", "Principle", "Jitter", "Rive", "Lottie", "ProtoPie"],
+      "tool_keywords": ["after effects", "principle", "jitter", "rive", "lottie", "protopie"],
+      "lead_signal": "people sharing After Effects / Principle UI-animation guides and the commenters asking for them",
       "queries": [
-        "After Effects alternative UI animation comment guide",
-        "comment and I'll send my UI motion design workflow",
-        "getting away from After Effects for product animation",
-        "Lottie microinteractions animation guide comment"
+        "After Effects UI animation tutorial comment and I'll send",
+        "After Effects to web animation guide comment below",
+        "Principle prototyping animation tutorial comment",
+        "Jitter motion graphics workflow comment and I'll DM"
+      ]
+    },
+    "buzz": {
+      "figma_feature": "Weave tools in Figma Design -- AI image tasks on canvas: background removal, style transfer, smart resize",
+      "displaces": ["Midjourney", "Stable Diffusion", "Canva", "standalone AI image apps"],
+      "tool_keywords": ["midjourney", "stable diffusion", "canva"],
+      "lead_signal": "people sharing Midjourney / Stable Diffusion product-image workflows and the commenters asking for the prompts",
+      "queries": [
+        "Midjourney product photos workflow comment and I'll send",
+        "Stable Diffusion design workflow guide comment below",
+        "AI background removal tutorial comment and I'll DM",
+        "Canva to pro design cheat sheet comment"
+      ]
+    },
+    "design": {
+      "figma_feature": "Generative Plugins + Figma agent + Agent Skills -- prompt-built, file-specific plugins and reusable AI workflows, no code",
+      "displaces": ["third-party Figma plugins", "plugin marketplace assets", "custom scripts"],
+      "tool_keywords": [],
+      "lead_signal": "people sharing Figma-plugin / design-automation guides and the commenters asking for the plugin list",
+      "queries": [
+        "best Figma plugins list comment and I'll send",
+        "Figma plugin workflow tutorial comment below",
+        "automate design busywork guide comment and I'll DM"
       ]
     },
     "dev_mode": {
-      "figma_feature": "Code Layers -- clone repos into Figma, real code on canvas, AI code gen, sync back to source",
-      "displaces": ["manual designer-to-developer handoff", "Anima", "Locofy", "Builder.io", "Zeplin"],
-      "lead_signal": "teams fighting the design-to-code handoff or wiring Figma to React/codebases",
+      "figma_feature": "Code Layers / Dev Mode -- clone repos into Figma, real code on canvas, AI code gen, sync back; design-to-code handoff",
+      "displaces": ["Zeplin", "Anima", "Builder.io", "Locofy"],
+      "tool_keywords": ["zeplin", "anima", "builder.io", "locofy"],
+      "lead_signal": "people sharing Zeplin / Anima / design-to-code handoff guides and the commenters asking for them",
       "queries": [
-        "design to code workflow comment guide",
-        "Figma to React handoff comment and I'll send",
-        "eliminate designer developer handoff",
-        "turn designs into code automatically"
+        "Zeplin handoff workflow guide comment and I'll send",
+        "Anima Figma to code tutorial comment below",
+        "design to code handoff guide comment and I'll DM"
+      ]
+    },
+    "draw": {
+      "figma_feature": "Custom Shader Effects -- prompt WebGPU shaders directly on the Figma canvas",
+      "displaces": ["Shadertoy", "GLSL/WebGL hand-coding"],
+      "tool_keywords": ["shadertoy", "glsl", "webgl"],
+      "lead_signal": "people sharing Shadertoy / WebGL shader tutorials and the commenters asking for the code",
+      "queries": [
+        "Shadertoy GLSL shader tutorial comment and I'll send",
+        "WebGL shader effects guide comment below"
       ]
     },
     "sites": {
       "figma_feature": "Figma Sites -- design and publish websites, no code, CMS",
-      "displaces": ["Webflow", "Framer", "Wix", "Squarespace", "Claude Code for websites"],
-      "lead_signal": "people building/publishing websites or client sites without code",
+      "displaces": ["Webflow", "Framer", "Wix", "Squarespace"],
+      "tool_keywords": ["webflow", "framer", "wix", "squarespace"],
+      "lead_signal": "people sharing Webflow / Framer build guides and the commenters asking for them",
       "queries": [
-        "build a website no code comment guide",
-        "Webflow Framer alternative comment and I'll send",
-        "comment and I'll send my website build workflow",
-        "build client websites with AI"
+        "Webflow website build tutorial comment and I'll send",
+        "Framer landing page guide comment below",
+        "no code website workflow comment and I'll DM"
       ]
     },
     "slides": {
       "figma_feature": "Figma Slides -- presentation tool built for designers, live decks, clickable prototypes",
-      "displaces": ["PowerPoint", "Keynote", "Google Slides", "Gamma", "Beautiful.ai", "Claude for decks"],
-      "lead_signal": "people making pitch/investor decks or frustrated with AI-generated slides",
+      "displaces": ["PowerPoint", "Keynote", "Google Slides", "Gamma", "Beautiful.ai"],
+      "tool_keywords": ["powerpoint", "keynote", "google slides", "gamma", "beautiful.ai"],
+      "lead_signal": "people sharing pitch-deck / PowerPoint design guides and the commenters asking for the template",
       "queries": [
-        "pitch deck design comment guide",
-        "presentation design AI vs human comment",
-        "comment and I'll send my deck template",
-        "investor deck design workflow"
+        "pitch deck PowerPoint template comment and I'll send",
+        "investor deck design guide comment below",
+        "Gamma AI presentation workflow comment"
       ]
     },
     "make": {
       "figma_feature": "Figma Make -- prompt-to-app: generate functional web/mobile apps and landing pages",
-      "displaces": ["Claude Code (app building)", "Cursor", "v0", "Bolt", "Lovable", "Replit"],
-      "lead_signal": "people vibe-coding UIs/apps from prompts or shipping landing pages with AI",
+      "displaces": ["Claude Code", "Cursor", "v0", "Bolt", "Lovable", "Replit"],
+      "tool_keywords": ["claude code", "cursor", "v0", "bolt", "lovable", "replit"],
+      "lead_signal": "people sharing Claude Code / Cursor / v0 app-build guides and the commenters asking for them",
       "queries": [
-        "build an app from a prompt comment guide",
-        "vibe code your UI comment and I'll send",
-        "Claude Code build app workflow comment",
-        "ship a landing page with AI comment"
+        "Claude Code build an app tutorial comment and I'll send",
+        "Cursor build UI workflow guide comment below",
+        "v0 Lovable landing page guide comment and I'll DM"
       ]
     },
     "figjam": {
       "figma_feature": "FigJam -- whiteboard, diagrams, flowcharts, journey maps, workshops",
       "displaces": ["Miro", "Mural", "Lucidchart", "Excalidraw"],
-      "lead_signal": "people diagramming systems/architecture, mapping workflows, or running workshops",
+      "tool_keywords": ["miro", "mural", "lucidchart", "excalidraw"],
+      "lead_signal": "people sharing Miro / Mural template & workshop guides and the commenters asking for them",
       "queries": [
-        "system architecture diagram comment guide",
-        "Miro Mural alternative comment and I'll send",
-        "user journey map template comment",
-        "workshop facilitation whiteboard guide"
-      ]
-    },
-    "draw": {
-      "figma_feature": "Custom shader effects + Weave AI image tools -- WebGPU effects and AI image edits on canvas",
-      "displaces": ["Photoshop (effects)", "After Effects (effects)", "Canva", "Midjourney (product imagery)", "background removers"],
-      "lead_signal": "designers doing effects/illustration or AI image edits (swap backgrounds, add logos)",
-      "queries": [
-        "AI product image background swap comment guide",
-        "Photoshop effects tutorial comment and I'll send",
-        "remove background add logo workflow comment",
-        "shader visual effects design comment"
-      ]
-    },
-    "design": {
-      "figma_feature": "Figma agent + Agent Skills + Generative Plugins -- AI design workflows, reusable skills, prompt-built plugins",
-      "displaces": ["custom scripts", "hiring a plugin developer", "other AI design assistants", "manual design busywork"],
-      "lead_signal": "design teams automating busywork or building reusable AI design workflows",
-      "queries": [
-        "AI design workflow automation comment guide",
-        "Figma plugin no code comment and I'll send",
-        "design ops automation prompt pack comment",
-        "AI design system generator comment"
+        "Miro board template comment and I'll send",
+        "Mural workshop facilitation guide comment below"
       ]
     }
   }
