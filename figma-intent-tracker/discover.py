@@ -230,5 +230,84 @@ def smart_discover(
     return kept
 
 
+# --- Second retriever: Google honors real boolean the LinkedIn actor can't -------
+# Union a Google search ('site:linkedin.com/posts "After Effects" "comment"') with
+# the native actor. Google gives real operators/quotes AND surfaces posts the fuzzy
+# LinkedIn search missed. Tradeoff: Google returns only title+snippet (no full body
+# or comment count), so those posts carry the tool from their query and rank after
+# the engagement-rich native hits until enriched.
+GOOGLE_ACTOR = os.environ.get("GOOGLE_SEARCH_ACTOR", "apify~google-search-scraper")
+
+
+def _google_query_specs() -> list[tuple]:
+    specs = []
+    for surface, s in _load_displacement().items():
+        for tool in s.get("tool_keywords", []):
+            q = f'site:linkedin.com/posts "{tool}" ("comment" OR "I\'ll send" OR "free guide")'
+            specs.append((q, tool, surface))
+    return specs
+
+
+def discover_google(limit: int = 10) -> list[dict]:
+    """Boolean Google search -> linkedin.com/posts URLs, tagged with the tool/surface
+    of the query that found them (Google's operators enforce the AND/quotes)."""
+    specs = _google_query_specs()
+    if not specs:
+        return []
+    items = run_actor(GOOGLE_ACTOR, {
+        "queries": "\n".join(q for q, _, _ in specs),
+        "resultsPerPage": limit, "maxPagesPerQuery": 1, "countryCode": "us",
+    })
+    term_to = {q: (tool, surface) for q, tool, surface in specs}
+    by_url: dict[str, dict] = {}
+    for item in items:
+        tool, surface = term_to.get((item.get("searchQuery") or {}).get("term", ""), (None, None))
+        for row in item.get("organicResults", []) or []:
+            url = (row.get("url") or "").split("?")[0]
+            if not url or "/posts/" not in url or url in by_url:
+                continue
+            snippet = f"{row.get('title', '')} {row.get('description', '')}".strip()
+            by_url[url] = {
+                "url": url, "title": (row.get("title") or snippet)[:140], "content": snippet,
+                "author": "", "author_headline": "", "comment_count": 0, "reaction_count": 0,
+                "bait_score": bait_score(snippet),
+                "matched_tools": [tool] if tool else matched_displaced_tools(snippet),
+                "surfaces": [surface] if surface else [], "source": "google",
+            }
+    return list(by_url.values())
+
+
+def _merge_candidates(native: list[dict], google: list[dict]) -> list[dict]:
+    """Union by URL; the engagement-rich native record wins on a collision."""
+    by_url = {p["url"]: p for p in google}
+    for p in native:
+        by_url[p["url"]] = p
+    return list(by_url.values())
+
+
+def union_discover(
+    queries: Optional[list[str]] = None,
+    max_posts: Optional[int] = None,
+    posted_limit: str = "6months",
+    require_tool: bool = True,
+    require_bait: bool = False,
+    google_limit: int = 10,
+) -> list[dict]:
+    """Two retrievers (native fuzzy + Google boolean) unioned, then boolean-filtered."""
+    native = discover_live(queries=queries, max_posts=max_posts, posted_limit=posted_limit)
+    for p in native:
+        p.setdefault("source", "native")
+    try:
+        google = discover_google(limit=google_limit)
+    except Exception as e:  # Google is additive recall; never let it break discovery
+        print(f"[union_discover] google retriever skipped: {e}")
+        google = []
+    combined = _merge_candidates(native, google)
+    kept, drops = filter_candidates(combined, require_tool=require_tool, require_bait=require_bait)
+    print(f"[union_discover] native={len(native)} google={len(google)} "
+          f"combined={len(combined)} -> kept {len(kept)}; dropped {dict(drops)}")
+    return kept
+
+
 def discover(mode: str, **kwargs) -> list[dict]:
-    return smart_discover(**kwargs) if mode == "live" else discover_demo()
+    return union_discover(**kwargs) if mode == "live" else discover_demo()

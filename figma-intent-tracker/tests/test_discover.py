@@ -1,5 +1,7 @@
 from discover import (
     DISCOVERY_QUERIES,
+    _google_query_specs,
+    _merge_candidates,
     excluded_reason,
     filter_candidates,
     matched_displaced_tools,
@@ -39,6 +41,22 @@ def test_filter_ranks_more_tool_mentions_first():
     ]
     kept, _ = filter_candidates(posts)
     assert kept[0]["content"] == "Webflow vs Framer vs Wix"  # more displaced tools -> ranked first
+
+
+def test_google_query_specs_are_real_boolean():
+    specs = _google_query_specs()
+    assert specs, "expected google query specs from the displacement map"
+    q0 = specs[0][0]
+    assert q0.startswith("site:linkedin.com/posts")
+    assert '"' in q0 and " OR " in q0  # quoted phrase + boolean OR that Google honors
+
+
+def test_merge_prefers_native_on_url_collision():
+    native = [{"url": "u1", "source": "native", "comment_count": 40}]
+    google = [{"url": "u1", "source": "google", "comment_count": 0}, {"url": "u2", "source": "google"}]
+    merged = {p["url"]: p for p in _merge_candidates(native, google)}
+    assert merged["u1"]["source"] == "native"  # rich record wins
+    assert merged["u2"]["source"] == "google"  # google-only URL added (extra recall)
 
 
 def test_displaced_tool_matching_is_whole_word():
