@@ -1,165 +1,389 @@
 # Figma LinkedIn Intent Miner
 
-Find LinkedIn "hand-raiser" / lead-magnet posts where the commenters are
-in-market for a design tool -- people trying to do what Figma does (often reaching
-for AI tools like Claude), or asking "comment and I'll DM the guide". Pull the
-commenters and turn them into a verified, ICP-filtered lead queue for a rep, with
-a suggested angle and a verbatim evidence quote for each surfaced lead.
+Find LinkedIn posts where someone is doing — the hard way, in a competitor tool —
+something **Figma now does natively**, pull the people raising their hand in the
+comments, and turn them into a **verified, ICP-filtered, account-routed lead queue**
+for a rep. Each surfaced lead carries a verbatim evidence quote, a suggested angle,
+and a Salesforce-aware routing decision.
 
-The target is design-tool demand, not Figma-churn specifically: a post does not
-need to mention Figma. Discovery looks for the demand signal; the ICP title filter
-and the gate decide who is actually worth a rep's time.
+> **Thesis:** the agent is small; the **trust layer is the product.** Anyone can
+> call an LLM to draft outreach. The hard part — and the actual job — is making an
+> LLM workflow *trustworthy in production*: constraining its inputs and outputs,
+> wrapping it in quality checks and monitoring, and routing the result to the right
+> person. That harness is ~90% of this repo. The LLM is one bounded step inside it.
 
-## Problem
+---
 
-Calling an LLM to draft outreach is the easy part. The hard part -- and the
-actual JD pain for Figma's Sales AI Engineer role -- is making an LLM workflow
-**trustworthy in production**: constraining outputs, building quality checks and
-monitoring, and tracking adoption. A naive version of this tool is a
-scrape-and-spam pipeline that surfaces hallucinated signals and burns rep trust.
+## 1. The problem (and why it maps to the role)
 
-## What I built
+A naive version of this tool is a scrape-and-spam pipeline: search LinkedIn, pull
+commenters, have GPT write them a DM. It would surface hallucinated signals, waste
+reps' time on non-buyers, and burn trust on day one.
 
-A small, code-orchestrated pipeline where **the LLM is one bounded step** and the
-trust layer around it is the product.
+The interesting problem is the opposite of "call the LLM." It's everything *around*
+the call:
+
+- **Constrain outputs** — make the model physically unable to return garbage, and
+  spend tokens only on inputs that already passed cheap deterministic filters.
+- **Quality checks + monitoring** — prove the workflow is accurate, catch its
+  failure modes, and make drift visible.
+- **Track adoption / impact** — connect the output to the CRM so it produces a
+  *sales action* (expansion vs. new-logo), not just a list.
+- **Product-led → enterprise expansion** — Figma grows bottom-up then expands into
+  accounts; reps run on **expansion signals**. This tool manufactures those signals
+  from public intent and routes them against Salesforce.
+
+Named tools in the work: **Anthropic** (the classifier), **Salesforce** (account
+match + routing), **Slack** (delivery), and structured, SQL-shaped records
+(pydantic) throughout.
+
+---
+
+## 2. What it does — the pipeline
 
 ```
-DISCOVER  Apify native LinkedIn post-search -> candidate posts
-POST-TYPE classify each post FIRST; only mine lead_magnet / tool_question /
-          tool_comparison (where commenters reveal tooling). Drop showcases +
-          off_topic posts before spending any comment-scraping budget.
-EXTRACT   Apify post-comments actor (per qualifying post) -> commenters: name, headline, company, comment
-FILTER    deterministic ICP title filter -- runs BEFORE the LLM; off-ICP dropped for free
-CLASSIFY  claude-haiku-4-5, schema-constrained, CONDITIONED ON POST TYPE
-          -> intent + need + verbatim quote + confidence + angle
-GATE      no surfaced lead without a verbatim evidence quote; ICP + intent + confidence thresholds
-VERIFY    deterministic quality check: downgrade a surfaced lead whose evidence
-          quote reads as praise, not tooling intent (catches LLM mislabels)
-ACCOUNT   match the commenter's company against Salesforce -> expansion-first routing:
-          existing customer + intent = churn/expansion alert to the Account Owner (AE);
-          no account = net-new lead for an SDR. Priority (P0..P3) by account tier + intent.
-NOTIFY    Slack incoming webhook per surfaced lead (human-in-the-loop; never auto-DMs)
-DASHBOARD static HTML: post-type gate, funnel, quality checks, persona/intent,
-          account routing, precision vs golden, impact (blank)
+DISCOVER   native LinkedIn post-search  ⋃  Google boolean search   (two retrievers)
+           → enrich Google hits (full body + comment count)
+           → smart filter: AND names a displaced tool · NOT off-domain stop-list
+           → cap to top N
+POST GATE  classify each post on TWO axes, before mining a single comment:
+           (a) structure  — is commenting a tooling tell? (lead_magnet / tool_question / tool_comparison)
+           (b) Figma overlap — could Figma DISPLACE this use case? (figma_surface ≠ none)
+EXTRACT    cookie-free comments actor, per post, author dropped + deduped
+FILTER     deterministic ICP title filter — buyer / user / builder tiers — BEFORE any LLM
+CLASSIFY   claude-haiku-4-5, schema-constrained, conditioned on the post type,
+           with self-consistency voting on borderline calls
+GATE       no surfaced lead without a VERBATIM evidence quote (exact substring)
+VERIFY     downgrade a surfaced lead whose quote reads as praise, not intent
+RICHNESS   grade how much the comment actually says (thin hand-raise → rich)
+ACCOUNT    match company → Salesforce → expansion-first routing (AE vs SDR, P0–P3)
+NOTIFY     Slack per surfaced lead (human-in-the-loop — never auto-DMs a prospect)
+MONITOR    funnel + per-run metrics + append-only run log + static HTML dashboard
 ```
 
-The post is the prior, judged on two axes before a single comment is mined:
-**structure** (is this a lead_magnet / tool_question / tool_comparison, where
-commenting reveals tooling intent?) and **Figma overlap** (could Figma *displace*
-the solution the poster is offering?). The second axis maps the post's use case to
-a Figma surface using `data/figma_capabilities.json` -- the Config-2026 product map
-(design, make, sites, slides, figjam, dev_mode, draw, buzz, motion). "Build a
-website" -> Figma Sites; "make a deck" -> Figma Slides; "redesign a room" / CAD /
-pure code-review -> none -> dropped. The insight: if a poster offers something
-Figma also solves and people comment for help in that area, those commenters are
-in-market for what Figma does. The comment classifier is also told the post type so
-it reads short comments ("Website", "interested") in context.
+Each stage exists because a live run proved it was needed. The sections below are the
+decision log — what we chose, what we traded away, and why.
 
-The trust layer, concretely:
+---
 
-- **Constrain inputs (post type first).** `posttype.py` classifies each post before
-  any comment is mined. Only `lead_magnet` / `tool_question` / `tool_comparison`
-  posts qualify -- showcases and off-topic posts are dropped, so a real designer who
-  happens to comment on an HR or finance post never enters the funnel. A
-  deterministic "comment-for-asset" detector catches lead magnets for free.
-- **Constrain outputs.** A deterministic ICP title filter (`titles.py`) runs
-  before any LLM call -- only ICP personas reach the model (design buyers/users,
-  plus a looser `builder` prospect tier for founders/PMs/indie/no-code builders),
-  so off-ICP commenters cost zero tokens. Builders never auto-surface: the gate
-  routes them to human review. The classifier is schema-constrained
-  (`output_config` json_schema) so it cannot omit a required field.
-- **Trust contract.** No lead is surfaced without a verbatim evidence quote.
-  `gate.py` checks the quote is an exact substring of the real comment and drops
-  the lead otherwise -- even at high confidence. (The committed golden set
-  includes a confident-but-hallucinated classification that the gate catches.)
-- **Lightest safe solution.** Free code filter first, then the cheapest capable
-  model (`claude-haiku-4-5`) on the narrow set that passed the filter.
-- **Quality checks.** Three layers: the verbatim gate; a deterministic
-  verification pass (`verify.py`) that downgrades a surfaced lead whose evidence
-  quote reads as praise rather than tooling intent (the one mislabel the gate
-  can't catch); and a golden-set eval (`tests/`) asserting expected
-  surfaced/review/dropped across post types and intents.
-- **Monitoring.** `monitoring.py` computes per-run metrics -- post-type and lead
-  funnels, intent distribution, hallucinated quotes caught, verification
-  downgrades, precision vs golden -- and appends them to a run log so accuracy
-  drift is visible over time. `dashboard.py` renders them. Business-impact metrics
-  are left blank and marked "(confirm with real CRM data)" -- never fabricated.
-- **Expansion-first routing (the PLG motion).** Each actionable lead's company is
-  matched against Salesforce (`accounts.py`). An existing paid customer showing
-  design-tool intent becomes a churn/expansion alert routed to the Account Owner
-  (AE) -- engage the buyer, not the commenter; a company with no account becomes a
-  net-new SDR lead. Priority P0..P3 by account tier + intent. The CRM is a
-  synthetic, clearly-labeled fixture in demo mode; the Salesforce API is the
-  documented live integration point. Real customer data is never fabricated.
-- **Human-in-the-loop.** Surfaces a signal + suggested angle to a rep; never
-  auto-DMs a prospect.
+## 3. The trust layer (the actual product)
 
-## How to run
+| Guarantee | Where | What it buys |
+|---|---|---|
+| **Constrain inputs** | `posttype.py` | Off-topic / non-displaceable posts dropped before they cost a token or a scrape |
+| **Constrain ICP** | `titles.py` | Deterministic title filter runs *before* the LLM; off-ICP people cost nothing |
+| **Constrain outputs** | `classify.py` json_schema | The model cannot omit a field or return an off-menu label |
+| **Trust contract** | `gate.py` | No lead surfaces without a verbatim evidence quote — catches hallucinations the model is confident about |
+| **Verification** | `verify.py` | Catches the one mislabel the gate can't: praise scored as intent |
+| **Self-consistency** | `classify.py` | Re-samples borderline one-word comments and votes, so they land consistently |
+| **Signal richness** | `richness.py` | Grades *how much* the evidence says, so reps see substantive comments first |
+| **No fabrication** | everywhere | Synthetic CRM is labeled; provenance on every record; real data gitignored |
+| **Monitoring** | `monitoring.py` + `dashboard.py` | Funnel, hallucinations caught, verifier downgrades, precision vs golden, run log |
 
-Demo mode is zero-credential and uses committed synthetic, labeled fixtures.
+The recurring principle: **the LLM proposes bounded fields; deterministic code
+disposes.** The model never decides "surface this" or "route to an SDR" — it returns
+an intent label, a confidence, and a quote, and plain, auditable `if`-statements make
+every consequential decision. A hallucinated quote can't escape a substring check no
+matter how confident the model is.
+
+---
+
+## 4. Key decisions & tradeoffs (the brain dump)
+
+### 4.1 Discovery — recall vs. precision, and a dumb search engine
+
+**Decision: two retrievers unioned, precision enforced in code, not in the query.**
+
+The journey:
+
+- **Firecrawl → Apify.** Started intending Firecrawl `/search`, but LinkedIn's public
+  indexing is thin. Moved to Apify actors for LinkedIn-native discovery.
+- **The cookie problem.** The first comments actor required a LinkedIn `li_at`
+  session cookie (it logged *"LinkedIn requires authentication… provide your li_at
+  cookie"* and returned 0). **Tradeoff:** a cookie means handling someone's
+  authenticated session — a compliance and security liability. **Decision:** switch
+  to **cookie-free, managed-auth actors** (`harvestapi`) for both discovery and
+  comments. Verified live: real commenters with name + headline + company, no cookie.
+- **Native search is fuzzy and ignores boolean.** Empirically tested: a boolean query
+  `("After Effects" OR Principle) AND ("comment")` returned **0** posts; even quotes
+  weren't honored (`"After Effects"` returned a Claude-ads post). The actor does
+  relevance matching, not keyword logic. **Decision:** stop fighting it — give it
+  short natural-language queries for **recall**, and move **precision into our own
+  code** (the "smart layer").
+- **The smart layer = boolean emulation client-side.** `smart_discover()` runs many
+  simple queries (OR), then enforces **AND** (post body must name a Figma-displaced
+  tool, whole-word) and **NOT** (a stop-list of off-domain noise: outbound-sales,
+  crypto, real estate, follower-count spam). That's the boolean query the actor
+  couldn't run — executed where it works. Live: 80 recalled → 39 kept.
+- **Second retriever: Google honors boolean.** `discover_google()` runs
+  `site:linkedin.com/posts "After Effects" ("comment" OR "I'll send")` via an Apify
+  Google actor. **Tradeoff:** Google returns only title + snippet — no body, no
+  comment count. **Decision:** union it anyway (additive recall), and **enrich** the
+  top Google hits via a post-detail actor to fetch full body + comment count so they
+  rank and gate fairly. Live payoff: Google ~10×'d the candidate pool (40 → ~380) and
+  **recovered surfaces native search missed entirely** (a 136-comment "Jitter vs
+  After Effects" post; ProtoPie vs Figma; Builder.io design-to-code).
+
+**Net tradeoff accepted:** higher recall means more candidates the gate must filter
+(~hundreds of cheap haiku calls per run). We pay that because the gate is trusted and
+the alternative — a clever query that misses the niche displacement posts — is worse.
+
+### 4.2 The post-type gate — "the post is the prior"
+
+**Decision: classify the post *before* mining its comments, and drop most of them.**
+
+A live run made the case: the same comment means opposite things on different posts.
+"Interested!" is a hand-raise on a *lead-magnet* post and noise on a *launch-hype*
+post. So we classify the post first and only mine the types where commenting reveals
+tooling intent (lead_magnet / tool_question / tool_comparison). Showcases and
+off-topic posts are dropped — **no comment-scraping budget spent on them.** The
+comment classifier is then *told the post type*, so it reads a one-word comment in
+context.
+
+**Tradeoff:** an extra LLM call per post. Worth it — it removes the largest source of
+noise (e.g., dropping ~24 of 35 posts in one run) before the expensive stages.
+
+### 4.3 The displaceability reframe — "could Figma replace this?"
+
+**Decision: qualify a post by Figma-capability overlap, not the word "design."**
+
+The sharpest reframe of the project. "Design" is ambiguous; the real question is
+*could Figma displace the solution this poster is offering?* We built a
+**capability map** (`figma_capabilities.json`) grounded in **Config 2026** (Figma
+Design, Make, Sites, Slides, FigJam, Dev Mode/Code Layers, Draw, Buzz, Motion), and a
+**displacement map** (`displacement_map.json`) mapping each surface to the competitor
+it eats (After Effects → Motion, Webflow/Framer → Sites, PowerPoint/Gamma → Slides,
+Miro → FigJam, Claude Code → Make, Zeplin/Anima → Dev Mode, Midjourney → Buzz).
+
+The gate now outputs `figma_surface`. Live proof of judgment, not keyword matching:
+a *"redesign your room with Claude"* (interior decor) post correctly drops
+(`figma_surface = none`) while *"build a website with Claude"* qualifies (Sites) and
+*"Presentation designer vs Claude"* qualifies (Slides). The discovery queries hunt the
+**displaced competitor by name**, so we find people using the exact tools Config 2026
+just made redundant.
+
+**Tradeoff:** the capability map is hand-curated from Figma's own writeups and goes
+stale after each Config. **Mitigation noted in code:** a capability-sync agent could
+extract it from Figma's keynote/recap on a schedule. Left as a documented next step
+rather than fabricated.
+
+### 4.4 ICP filter — deterministic, before the LLM, and repeatedly debugged by live data
+
+**Decision: a free, deterministic title filter constrains who reaches the model.**
+
+Buyer-committee tiers from Figma's real expansion motion: **champion**
+(design systems, DesignOps, head of design), **economic_buyer** (VP Product/Design,
+CPO, eng leaders), **user** (product/UX/UI designers, and — after live data — Webflow
+devs, content/visual/graphic/presentation designers), **gatekeeper** (IT/security),
+plus a looser **builder** prospect tier (founders/PMs/indie/no-code) that **never
+auto-surfaces — it routes to human review.**
+
+This filter was hardened by bugs that *only live data surfaced* — a theme worth
+foregrounding as evidence of monitoring discipline:
+
+- `intern` matched "internal"/"international" → made it **whole-word**.
+- `student` matched "Student Support" (a service area) → **whole-word + a
+  service-phrase exception**.
+- `anima` (the handoff tool) matched "**anim**ation" everywhere → **whole-word** tool
+  matching.
+- `cpo` matched a "**Chief People Officer**" (HR) as a product buyer → **require the
+  full "chief product officer," and never assign economic_buyer under HR context.**
+
+**Tradeoff:** a deterministic filter has false negatives (a real buyer with an oddly
+phrased title). We mitigate by routing **missing titles to review, never a silent
+drop**, and by broadening the include lists when live data shows a miss.
+
+### 4.5 The classifier — cheapest capable model, schema-locked, post-conditioned
+
+**Decisions:** `claude-haiku-4-5` (the narrow task doesn't need a frontier model —
+"lightest safe solution"); **schema-constrained** structured output so it can't omit
+a field; **conditioned on the post type** so short comments read in context; and
+**self-consistency** — borderline calls (surface-eligible but low confidence or a
+one/two-word quote) are re-sampled and majority-voted, with confidence scaled by
+agreement. This fixed an observed flaw where identical one-word "Website" comments
+landed `active_need` on one run and `noise` on the next.
+
+**Tradeoff:** the API rejected `minimum`/`maximum` on the confidence number — we
+dropped them from the JSON schema and let pydantic enforce the 0–1 range after
+parsing. Self-consistency triples the call count on borderline items only.
+
+### 4.6 The gate, verification, and richness — three quality layers on the evidence
+
+- **Gate (`gate.py`):** verbatim-substring check first. A confident-but-hallucinated
+  quote is dropped regardless of confidence. The committed golden set includes such a
+  case so the test suite proves the gate catches it; live runs caught real ones every
+  time (e.g., 6 in one run).
+- **Verify (`verify.py`):** the gate proves the quote is *real*; verify proves it
+  *justifies the label* — it downgrades a surfaced lead whose evidence is praise
+  ("love this!") with no tooling signal. The one mislabel the gate can't see.
+- **Richness (`richness.py`):** grades how much the comment says (thin → rich), so a
+  rep sees *"Gamma is still limited — the API can't generate sales-ready proposals"*
+  (rich) above *"Interested!"* (thin). The gate requires evidence; richness grades it.
+
+**Tradeoff:** richness is a heuristic (length + names a tool + states a need), not a
+model. Deterministic and cheap on purpose.
+
+### 4.7 Account routing — the PLG → enterprise expansion motion
+
+**Decision: a lead isn't a person, it's a routing decision against the CRM.**
+
+`accounts.py` matches the commenter's company to Salesforce and routes
+**expansion-first**: an existing paid customer showing design-tool intent is a
+**churn/expansion alert to the Account Owner (AE)** (engage the buyer, not the
+commenter); a free/pro customer is an **upsell**; a no-match company is a **net-new
+SDR lead**. Priority P0–P3 by account tier + intent. This is the literal expansion
+motion the JD describes — public intent → CRM context → the right rep, the right play.
+
+**Tradeoff / honesty:** matching real people's companies to **Figma's real
+Salesforce** requires Figma's CRM, which an applicant can't have. So the CRM is a
+**clearly-labeled synthetic fixture** (`sfdc_accounts.json`); `accounts.py` documents
+the Salesforce API as the live integration point and labels every record's source.
+**Nothing about real customers is fabricated.** On live runs, real companies don't
+match the synthetic CRM and correctly route as net-new — which is the honest outcome.
+
+### 4.8 Monitoring & the demo/live split
+
+- **Monitoring (`monitoring.py`):** every run computes a funnel, intent distribution,
+  hallucinations caught, verifier downgrades, and precision vs. the golden set, and
+  appends them to a run log so accuracy drift is visible over time. The dashboard
+  renders it.
+- **Demo/live split:** **demo mode runs zero-credential** on committed synthetic,
+  labeled fixtures + recorded LLM outputs. This is what makes the repo reproducible,
+  testable (a golden-set eval), and safe to commit (no real people's data). **Live
+  mode** (`MODE=live` + keys) runs the real thing. The same code path; only the
+  connectors differ.
+
+---
+
+## 5. Compliance posture (a feature, not an afterthought)
+
+LinkedIn scraping crosses LinkedIn's ToS and touches personal data (GDPR/CCPA). The
+position is **proceed deliberately, with guardrails**, and be able to speak to it as
+judgment rather than recklessness:
+
+- **Cookie-free** managed-auth actors — we never handle a user's LinkedIn session.
+- **Human-in-the-loop** — the tool surfaces a signal + suggested angle to a rep; it
+  **never auto-DMs** a prospect.
+- **No committed PII** — live scrape output is written to `data/*-live.json` and the
+  run log, both **gitignored**. The committed repo is synthetic.
+- **Provenance everywhere** — every record carries `source` (demo/live); the CRM is
+  labeled synthetic; business-impact metrics are left blank and marked
+  *"(confirm with real CRM data)"* — never invented.
+- **Configurable source** — actor IDs are env vars, so the pipeline isn't welded to
+  one scraping method.
+
+---
+
+## 6. JD mapping (explicit)
+
+| JD theme | Where it lives in this repo |
+|---|---|
+| Trustworthy LLM workflows in production | the entire trust layer (§3) — gates, verify, self-consistency, schema lock |
+| Constrain LLM outputs | `posttype.py` + `titles.py` (pre-LLM filters) + json_schema in `classify.py` |
+| Build quality checks | `gate.py` + `verify.py` + `richness.py` + golden-set eval in `tests/` |
+| Build monitoring | `monitoring.py` + `dashboard.py` — funnel, drift, precision vs golden |
+| Track adoption / impact | dashboard impact panel (blank, pending real CRM — not fabricated) |
+| Salesforce | `accounts.py` — account match + expansion routing |
+| Slack | `notify.py` — per-lead delivery, human-in-the-loop |
+| OpenAI/Anthropic | `claude-haiku-4-5` classifier, schema-constrained |
+| SQL-shaped data | pydantic records throughout; JSONL run log (a queryable shape) |
+| PLG → enterprise expansion / expansion signals | the displacement thesis + expansion-first routing |
+
+---
+
+## 7. What it actually found (live, honest)
+
+The pipeline has run end-to-end on live LinkedIn data many times. Representative
+findings (the honesty matters more than the headline):
+
+- **The union works.** Native fuzzy search + Google boolean recovered displacement
+  posts native-alone missed — designers debating *Jitter vs After Effects*, a PM
+  evaluating *Gamma* against Figma Slides, a Miro→FigJam thread.
+- **The gates filter hard, on purpose.** A typical run distills ~90 commenters to a
+  handful of surfaced leads and a small review queue, dropping the rest with
+  auditable reasons (off-ICP title, classified noise, non-verbatim). That refusal to
+  surface noise *is* the product.
+- **The gate catches real hallucinations** every live run.
+- **Live data found real bugs** (the intern/student/anima/cpo title matches) — caught
+  by inspecting drops, then fixed and unit-tested. That loop is the monitoring story.
+- **Honest limits:** the highest-engagement "comment for the guide" posts skew toward
+  AI-generalist hustle audiences, so yield per post is low and many surfaced
+  evidences are thin one-word hand-raises (hence the richness score). Lead *quality*
+  is governed by **source selection**, which is why discovery evolved from generic
+  "design" queries to **named-competitor displacement** queries.
+
+---
+
+## 8. Limitations & honest gaps
+
+- Capability map is hand-curated and dates with each Config (sync-agent is a
+  documented next step).
+- LinkedIn keyword search is fuzzy; precision is carried by the code filters, not the
+  query — accepted and engineered around.
+- Synthetic CRM means live routing is mostly net-new until wired to real Salesforce.
+- Self-consistency and richness are deliberately cheap heuristics, not models.
+- Thin one-word evidence on lead-magnet posts is real; the human-in-the-loop and
+  richness score exist precisely because of it.
+
+---
+
+## 9. Stack
+
+Python · **pydantic** (the trust contract) · **Anthropic `claude-haiku-4-5`**
+(classifier, schema-constrained) · **Apify** (LinkedIn post-search, post-comments,
+post-detail; Google search — all cookie-free) · **Salesforce** (account match /
+expansion routing; synthetic in demo, API integration point for live) · **Slack**
+(incoming webhook delivery) · static HTML dashboard. No framework — the orchestration
+is plain, inspectable code so every step is auditable.
+
+---
+
+## 10. How to run
 
 ```bash
 pip install -r requirements.txt
-MODE=demo python pipeline.py     # runs the full pipeline, prints funnel + eval, renders dashboard.html
-python -m pytest -q               # golden-set eval + unit tests
-```
 
-Live mode runs against real LinkedIn posts. Copy `.env.example` to `.env`, fill
-in keys, then:
+# Demo: zero credentials, synthetic + labeled fixtures, golden-set eval
+MODE=demo python pipeline.py
+python -m pytest -q
 
-```bash
+# Live: real LinkedIn data
+cp .env.example .env   # add APIFY_TOKEN, ANTHROPIC_API_KEY; SLACK_WEBHOOK_URL optional
 export $(grep -v '^#' .env | xargs)
 MODE=live python pipeline.py
 ```
 
-Live mode needs `APIFY_TOKEN` (discovery + comment extraction) and
-`ANTHROPIC_API_KEY` (classifier). Both Apify actors are cookie-free -- discovery
-via a native LinkedIn post-search actor (which returns each post's body text and
-comment count, so bait posts are ranked by their actual call-to-action plus
-comment volume), and comment extraction via a managed-auth comments actor -- so no
-LinkedIn session cookie is required. `SLACK_WEBHOOK_URL` is optional (without it, surfaced leads
-print their payload). Actor slugs are env vars (`APIFY_POST_SEARCH_ACTOR`,
-`APIFY_ACTOR`). Extraction drops the post author and dedupes to one lead per
-person before classifying.
+---
 
-This pipeline has been run end-to-end on real LinkedIn posts: discovery returned
-real Figma-switching posts, extraction pulled real commenters cookie-free, the
-ICP filter correctly rejected off-ICP commenters (e.g. EV-charging engineers on a
-design thread), and the verbatim gate caught real LLM hallucinations (confident
-classifications whose evidence quote was not an exact substring). Committed data
-stays synthetic; real runs write to gitignored `data/*-live.json`.
+## 11. File map
 
-## JD mapping
+```
+pipeline.py        orchestrator (the LLM is one bounded step inside it)
+discover.py        union retrieval: native + Google, smart boolean filter, enrich, cap
+posttype.py        post-type + Figma-displaceability gate (the first gate)
+extract.py         cookie-free comments actor, per-post, author dedup
+titles.py          deterministic ICP title filter (buyer/user/builder tiers)
+classify.py        haiku classifier: schema-locked, post-conditioned, self-consistency
+gate.py            verbatim-evidence trust gate
+verify.py          praise-mislabel quality check
+richness.py        signal-richness grading
+accounts.py        Salesforce match + expansion-first routing
+notify.py          Slack delivery (human-in-the-loop)
+monitoring.py      per-run metrics + run log
+dashboard.py       static HTML monitoring view
+schema.py          pydantic models — the trust contract
+data/              icp_titles · figma_capabilities · displacement_map · sfdc_accounts
+                   · golden + demo fixtures   (the swappable domain "knowledge")
+tests/             golden-set eval + unit tests for every deterministic layer
+```
 
-| JD theme | Where it lives |
-| --- | --- |
-| Constrain LLM outputs | `titles.py` (pre-LLM filter) + json_schema classifier in `classify.py` |
-| Quality checks | `gate.py` verbatim gate + `tests/` golden-set eval |
-| Monitoring | `dashboard.py` funnel + persona/intent + precision vs golden |
-| Track adoption/impact | dashboard impact panel (blank pending real CRM data) |
-| Named stack (Anthropic, Slack, Salesforce, SQL-shaped data) | haiku classifier, Slack notify, Salesforce account match (`accounts.py`), structured pydantic records |
-| PLG -> enterprise expansion signal | design-tool intent matched to Salesforce accounts -> churn/expansion alert to the AE vs net-new to an SDR |
+---
 
-## Compliance posture (a feature, not an afterthought)
+## 12. Reusability — it's a domain-agnostic engine
 
-LinkedIn scraping crosses LinkedIn's ToS and touches personal data
-(GDPR/CCPA). The decision here is to **proceed deliberately**, with guardrails:
-
-- The scraping source is **configurable** (Apify actor IDs are env vars), so the
-  pipeline is not welded to one method.
-- **Human-in-the-loop**: the tool surfaces signals to a rep and never auto-DMs.
-- **No real people's data is committed**: live output is written to
-  `data/*-live.json`, which is gitignored. The committed repo is synthetic.
-- Every record carries **provenance** (`source: demo|live`); nothing is invented.
-
-This is meant to read as judgment, not recklessness -- and the same trust layer
-(verbatim-evidence gate + ICP constraint) is what keeps the pipeline from
-becoming generic scrape-and-spam.
-
-## Stack
-
-Python, pydantic (the trust contract), Anthropic `claude-haiku-4-5` (classifier),
-Apify (LinkedIn post discovery + comment extraction, single provider), Salesforce
-account match for expansion routing (synthetic fixture in demo; API integration
-point for live), Slack incoming webhooks, static HTML dashboard. No framework; the
-orchestration is plain code so every step is inspectable.
+Nothing in the trust layer, the union retriever, the gates, the routing, or the
+monitoring knows what Figma is. "Figma" lives entirely in four data files (capability
+map, displacement map, ICP titles, stop-list) plus the demo fixtures. Re-point those
+four files and the same engine mines, gates, and routes leads for **any** product
+with a displacement story and a buyer committee — which is exactly the test of
+whether the trust layer, not the agent, was the real work.
