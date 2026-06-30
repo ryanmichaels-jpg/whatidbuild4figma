@@ -97,8 +97,18 @@ def classify_post_demo(post: dict) -> PostClassification:
 
 def classify_post_live(post: dict) -> PostClassification:
     content = post.get("content") or post.get("title") or ""
+
+    # The comment-for-asset structure is a HINT, not an override: a lead magnet only
+    # qualifies if its asset is about design/build tooling. Passing the hint (rather
+    # than hard-returning lead_magnet) lets the model still reject off-topic bait
+    # like a "40+ free AI tools" guide or a color-theory PDF.
+    hint = ""
     if detect_lead_magnet(content):
-        return _finalize(PostType.lead_magnet, [], "deterministic: comment-for-asset structure", "live")
+        hint = (
+            "\n\nNote: this post has a 'comment for an asset' call-to-action. Classify it "
+            "lead_magnet ONLY if the asset is about design/build tooling; otherwise it is "
+            "off_topic (a lead magnet for an unrelated topic does not qualify)."
+        )
 
     from anthropic import Anthropic
 
@@ -107,7 +117,7 @@ def classify_post_live(post: dict) -> PostClassification:
         model=POST_CLASSIFIER_MODEL,
         max_tokens=300,
         system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": content[:1200]}],
+        messages=[{"role": "user", "content": content[:1200] + hint}],
         output_config={"format": {"type": "json_schema", "schema": _POST_SCHEMA}},
     )
     payload = json.loads("".join(b.text for b in resp.content if getattr(b, "type", None) == "text"))
