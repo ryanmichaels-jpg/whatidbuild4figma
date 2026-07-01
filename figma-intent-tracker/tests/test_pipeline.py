@@ -3,6 +3,7 @@ import os
 
 from pipeline import funnel, precision_vs_golden, richness_lever, run, run_with_posts
 from schema import Classification, Decision, IntentType, PostType
+from titles import classify_title
 
 
 def _cls(intent, conf):
@@ -16,6 +17,21 @@ def test_richness_lever_promotes_rich_review_holds_thin_surface():
     assert richness_lever(Decision.review, rich, "moderate")[0] == Decision.review # moderate stays
     # curious is not surface-eligible, so richness can't promote it
     assert richness_lever(Decision.review, _cls(IntentType.curious, 0.9), "rich")[0] == Decision.review
+
+
+def test_lead_magnet_handraise_surfaces_thin_icp():
+    curious = _cls(IntentType.curious, 0.4)   # a one-word hand-raise reads as thin/curious
+    icp = classify_title("Product Design Lead")   # matched, non-builder persona
+    # thin hand-raise on a lead_magnet post surfaces + is flagged, from surface OR review
+    dec, note, flag = richness_lever(Decision.surface, curious, "thin", PostType.lead_magnet, icp)
+    assert dec == Decision.surface and flag == "thin_handraise"
+    assert richness_lever(Decision.review, curious, "thin", PostType.lead_magnet, icp)[0] == Decision.surface
+    # same thin comment on a tool_question post is still held for review (intent must be in the words there)
+    assert richness_lever(Decision.surface, curious, "thin", PostType.tool_question, icp)[0] == Decision.review
+    # praise on a bait post is engagement, not a hand-raise: verify flag blocks the promotion
+    assert richness_lever(Decision.review, curious, "thin", PostType.lead_magnet, icp, "praise")[0] == Decision.review
+    # a moderate tire-kicker on a lead_magnet post is NOT a thin hand-raise -> normal path
+    assert richness_lever(Decision.review, curious, "moderate", PostType.lead_magnet, icp)[0] == Decision.review
 
 _GOLDEN = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "golden.json")
 
@@ -37,8 +53,8 @@ def test_demo_funnel_counts():
     leads = run("demo")
     f = funnel(leads)
     assert f["extracted"] == 13
-    assert f["surfaced"] == 4  # includes the rich builder promoted by the richness lever
-    assert f["review"] == 3
+    assert f["surfaced"] == 5  # rich builder promoted + thin ICP hand-raise on the lead-magnet post
+    assert f["review"] == 2
     assert f["dropped"] == 6
 
 

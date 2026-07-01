@@ -40,7 +40,7 @@ def render(leads: list[Lead], mode: str, post_results: dict | None = None) -> st
 
     # quality counters
     hallucinations = sum(1 for x in leads if "verbatim" in x.reason)
-    downgrades = sum(1 for x in leads if x.quality_flag)
+    downgrades = sum(1 for x in leads if x.quality_flag and x.quality_flag != "thin_handraise")
 
     personas = Counter(
         x.title.persona.value for x in leads if x.title.persona is not None

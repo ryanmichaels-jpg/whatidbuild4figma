@@ -26,12 +26,20 @@ generic scrape-and-spam pipeline. Hold these invariants:
    proves the quote is REAL (verbatim); verify guards that the quote JUSTIFIES the
    label. Keep it deterministic so it runs zero-cred.
 
-1b. **The richness lever moves leads by evidence substance** (`pipeline.richness_lever`,
-   after verify). A THIN one-word surface lead is held for review; a RICH review lead is
-   PROMOTED to surface -- but only if it has surface-eligible intent + confidence + (already)
-   a verbatim quote. This is the one case a `builder` can auto-surface: a substantive
-   evaluating/active-need comment earns the slot. Bounded on purpose -- richness never
-   overrides the verbatim gate or the ICP filter.
+1b. **The richness lever moves leads by evidence substance, POST-TYPE-AWARE**
+   (`pipeline.richness_lever`, after verify). A THIN one-word surface lead is held for
+   review; a RICH review lead is PROMOTED to surface -- but only if it has surface-eligible
+   intent + confidence + (already) a verbatim quote. This is the one case a `builder` can
+   auto-surface: a substantive evaluating/active-need comment earns the slot. Bounded on
+   purpose -- richness never overrides the verbatim gate or the ICP filter.
+   **Lead-magnet exception:** on a `lead_magnet` post the intent lives in the ACT of raising
+   a hand for the post's resource, not in the words -- so a THIN one-word comment from an
+   ICP-matched buyer/user (persona matched, NOT the looser `builder` tier) STAYS surfaced,
+   tagged `quality_flag="thin_handraise"` for a light SDR qualification touch. This applies
+   ONLY to lead_magnet posts (on tool_question / tool_comparison posts the commenter must
+   reveal intent in words, so thin still -> review). The verbatim gate and ICP filter still
+   hold: the surfaced quote is the person's real comment, and only a matched buyer/user
+   qualifies. The `thin_handraise` flag is excluded from the verifier-downgrade counters.
 
 2. **No surfaced lead without a verbatim evidence quote.** `gate.py` requires the
    classifier's `evidence_quote` to be an exact substring of the real comment.

@@ -21,16 +21,45 @@ import posttype as posttype_mod
 from gate import CONFIDENCE_THRESHOLD, SURFACE_INTENTS, decide
 from notify import notify
 from richness import score_richness
-from schema import Commenter, Decision, Lead, PostType, TitleStatus
+from schema import Commenter, Decision, Lead, Persona, PostType, TitleStatus
 from verify import verify
 
 
-def richness_lever(decision: Decision, cls, richness_label: str | None):
-    """Let evidence substance move a lead: a rich review lead earns a surface slot;
-    a thin one-word surface lead is held for human qualification. Bounded -- promotion
-    still requires surface-eligible intent + confidence + (already) a verbatim quote."""
+def richness_lever(decision: Decision, cls, richness_label: str | None,
+                   post_type: PostType | None = None, title=None, verify_flag: str | None = None):
+    """Let evidence substance move a lead -- POST-TYPE-AWARE.
+
+    On a lead_magnet post the intent lives in the ACT of raising a hand for the post's
+    resource, not in the words: a THIN one-word comment from an ICP-matched buyer/user
+    (not the looser `builder` tier) is surfaced as a hand-raise -- kept surfaced, or
+    promoted out of an ambiguous-intent review -- flagged for a light SDR qualification
+    touch. Skipped if verify flagged the comment as praise (praise on a bait post is
+    engagement, not a request). Everywhere else, a thin one-word surface lead is held for
+    review, and a rich review lead earns a surface slot (surface-eligible intent + conf +
+    an already-verbatim quote). Bounded: never overrides the verbatim gate or ICP filter.
+
+    Returns (decision, reason_note_or_None, quality_flag_or_None).
+    """
+    is_icp_buyer = (
+        title is not None
+        and title.status == TitleStatus.matched
+        and title.persona is not None
+        and title.persona != Persona.builder
+    )
+    if (
+        post_type == PostType.lead_magnet
+        and richness_label == "thin"
+        and is_icp_buyer
+        and verify_flag is None
+        and decision in (Decision.surface, Decision.review)
+    ):
+        return (
+            Decision.surface,
+            "surfaced: lead-magnet hand-raise from ICP buyer (intent = the ask; thin evidence flagged)",
+            "thin_handraise",
+        )
     if decision == Decision.surface and richness_label == "thin":
-        return Decision.review, "held for review: thin one-word evidence needs qualification"
+        return Decision.review, "held for review: thin one-word evidence needs qualification", None
     if (
         decision == Decision.review
         and richness_label == "rich"
@@ -38,8 +67,8 @@ def richness_lever(decision: Decision, cls, richness_label: str | None):
         and cls.intent_type in SURFACE_INTENTS
         and cls.confidence >= CONFIDENCE_THRESHOLD
     ):
-        return Decision.surface, f"promoted to surface: rich evidence ({cls.intent_type.value})"
-    return decision, None
+        return Decision.surface, f"promoted to surface: rich evidence ({cls.intent_type.value})", None
+    return decision, None, None
 from titles import classify_title
 
 _GOLDEN = os.path.join(os.path.dirname(__file__), "data", "golden.json")
@@ -79,14 +108,21 @@ def process(commenter: Commenter, post_type: PostType | None, mode: str) -> Lead
         lead.quality_flag = quality_flag
         decision = new_decision
 
-    # richness + the richness lever (rich review -> surface, thin surface -> review)
+    # richness + the richness lever (rich review -> surface, thin surface -> review,
+    # thin ICP hand-raise on a lead_magnet post -> stays surfaced, flagged)
     if decision in (Decision.surface, Decision.review):
         lead.richness, lead.richness_label = score_richness(commenter.comment_text)
-        levered, note = richness_lever(decision, cls, lead.richness_label)
+        levered, note, flag = richness_lever(
+            decision, cls, lead.richness_label, post_type, title, lead.quality_flag
+        )
+        if flag:
+            lead.quality_flag = flag
         if levered != decision:
             lead.decision = levered
             lead.reason = note
             decision = levered
+        elif note:
+            lead.reason = note
 
     # account match + expansion routing only for actionable leads (no CRM lookup on dropped noise)
     if decision in (Decision.surface, Decision.review):

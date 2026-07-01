@@ -24,7 +24,7 @@ def compute(leads: list[Lead], post_results: dict[str, PostClassification], gold
     post_types = Counter(pc.post_type.value for pc in post_results.values())
 
     hallucinations = sum(1 for x in leads if "verbatim" in x.reason)
-    verifier_downgrades = sum(1 for x in leads if x.quality_flag)
+    verifier_downgrades = sum(1 for x in leads if x.quality_flag and x.quality_flag != "thin_handraise")
 
     m = {
         "posts_total": len(post_results),
