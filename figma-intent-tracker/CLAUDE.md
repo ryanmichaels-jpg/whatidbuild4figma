@@ -40,6 +40,10 @@ generic scrape-and-spam pipeline. Hold these invariants:
    reveal intent in words, so thin still -> review). The verbatim gate and ICP filter still
    hold: the surfaced quote is the person's real comment, and only a matched buyer/user
    qualifies. The `thin_handraise` flag is excluded from the verifier-downgrade counters.
+   For a hand-raise the rep angle is DERIVED from evidence, not free-written by the LLM
+   (`pipeline.handraise_angle`): they asked for the post's resource, so they need what it
+   does, and the post's `figma_surface` names the Figma product that does it ("they need
+   help building a website -> Figma Sites"). Grounded beats generated -- keep it deterministic.
 
 2. **No surfaced lead without a verbatim evidence quote.** `gate.py` requires the
    classifier's `evidence_quote` to be an exact substring of the real comment.

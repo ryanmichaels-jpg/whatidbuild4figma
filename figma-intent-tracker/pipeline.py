@@ -21,8 +21,38 @@ import posttype as posttype_mod
 from gate import CONFIDENCE_THRESHOLD, SURFACE_INTENTS, decide
 from notify import notify
 from richness import score_richness
-from schema import Commenter, Decision, Lead, Persona, PostType, TitleStatus
+from schema import Commenter, Decision, FigmaSurface, Lead, Persona, PostType, TitleStatus
 from verify import verify
+
+
+# For a hand-raise, the suggested angle is DERIVED from evidence, not free-written by the
+# LLM: they commented asking for the post's resource, so they need what that resource does
+# -- and the post's figma_surface says which Figma product does it. Grounded > generated.
+_SURFACE_ANGLE = {
+    FigmaSurface.sites:    ("Figma Sites", "building and shipping a website"),
+    FigmaSurface.make:     ("Figma Make", "building an app or interactive prototype"),
+    FigmaSurface.slides:   ("Figma Slides", "building a presentation or pitch deck"),
+    FigmaSurface.motion:   ("Figma Motion", "creating UI motion and animation"),
+    FigmaSurface.figjam:   ("FigJam", "whiteboarding, diagramming, and workshops"),
+    FigmaSurface.dev_mode: ("Figma Dev Mode", "handing design off to code"),
+    FigmaSurface.design:   ("Figma Design", "UI and product design"),
+    FigmaSurface.draw:     ("Figma Draw", "illustration and vector work"),
+    FigmaSurface.buzz:     ("Figma Buzz", "producing on-brand marketing assets"),
+}
+
+
+def handraise_angle(comment_text: str, figma_surface: FigmaSurface | None) -> str:
+    """Evidence-grounded rep angle for a lead-magnet hand-raise: they commented asking
+    for the post's resource, meaning they need what it does; point at the Figma surface."""
+    said = " ".join((comment_text or "").split())
+    product, need = _SURFACE_ANGLE.get(figma_surface, (None, None))
+    if product:
+        return (f'Commented "{said}" asking for the resource this post offers -- a hand-raise, '
+                f'meaning they need help {need}. Reach out offering to show how {product} does it, '
+                f'and reference their comment.')
+    return (f'Commented "{said}" asking for the resource this post offers -- a hand-raise, '
+            f'meaning they are in-market for what the post covers. Reach out with the equivalent '
+            f'Figma workflow, and reference their comment.')
 
 
 def richness_lever(decision: Decision, cls, richness_label: str | None,
@@ -74,7 +104,8 @@ from titles import classify_title
 _GOLDEN = os.path.join(os.path.dirname(__file__), "data", "golden.json")
 
 
-def process(commenter: Commenter, post_type: PostType | None, mode: str) -> Lead:
+def process(commenter: Commenter, post_type: PostType | None, mode: str,
+            figma_surface: FigmaSurface | None = None) -> Lead:
     """Run one commenter through filter -> (classify) -> gate -> verify -> account match + route."""
     title = classify_title(commenter.headline)
     cls = None
@@ -123,6 +154,9 @@ def process(commenter: Commenter, post_type: PostType | None, mode: str) -> Lead
             decision = levered
         elif note:
             lead.reason = note
+        # hand-raise: replace the LLM's free-written angle with an evidence-grounded one
+        if flag == "thin_handraise" and cls is not None:
+            cls.suggested_angle = handraise_angle(commenter.comment_text, figma_surface)
 
     # account match + expansion routing only for actionable leads (no CRM lookup on dropped noise)
     if decision in (Decision.surface, Decision.review):
@@ -190,7 +224,7 @@ def run_with_posts(mode: str | None = None):
         if not pc.qualifies:
             continue  # off_topic / showcase -> never scrape its comments
         for commenter in extract_mod.extract_for_post(post, mode):
-            leads.append(process(commenter, pc.post_type, mode))
+            leads.append(process(commenter, pc.post_type, mode, pc.figma_surface))
     return leads, post_results
 
 
