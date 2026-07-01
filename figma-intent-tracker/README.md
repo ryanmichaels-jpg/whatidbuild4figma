@@ -355,6 +355,17 @@ MODE=live python pipeline.py
 
 ---
 
+## 10a. Scheduled automation — it's a workflow, not a one-off
+
+A GitHub Actions workflow (`.github/workflows/daily-intent-scrape.yml`) runs the whole
+pipeline **on a daily cron** (and on manual dispatch). Each run discovers fresh posts,
+mines and scores leads, delivers surfaced ones to Slack, and **appends the run's
+metrics to the monitoring log** — so lead volume and accuracy are tracked *over time*,
+not captured once. It runs on repo secrets (`APIFY_TOKEN`, `ANTHROPIC_API_KEY`,
+`SLACK_WEBHOOK_URL`) and no-ops cleanly until they're set. This is the "automated,
+monitored AI workflow" shape the role describes — the scrape is a scheduled system, and
+the run log is the adoption/monitoring trail.
+
 ## 11. File map
 
 ```

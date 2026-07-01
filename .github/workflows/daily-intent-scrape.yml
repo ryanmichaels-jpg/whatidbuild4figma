@@ -1,0 +1,61 @@
+name: Daily Figma Intent Scrape
+
+# This is an automated, AI-powered workflow -- not a one-off search. On a schedule it
+# discovers fresh LinkedIn posts, mines commenters, filters to ICP, classifies intent
+# (schema-constrained LLM), gates on verbatim evidence, scores richness, and routes
+# each lead against Salesforce -- then appends the run's metrics to the monitoring log
+# so accuracy and lead volume are tracked OVER TIME (adoption/monitoring, not a demo
+# snapshot). Enable it by adding repo secrets: APIFY_TOKEN, ANTHROPIC_API_KEY,
+# SLACK_WEBHOOK_URL. Until then, scheduled runs no-op cleanly.
+
+on:
+  schedule:
+    - cron: "0 13 * * *"   # 13:00 UTC, once a day
+  workflow_dispatch: {}     # manual trigger (used for live demos)
+
+concurrency:
+  group: figma-intent-scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: figma-intent-tracker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run the intent miner (live)
+        env:
+          MODE: live
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "$APIFY_TOKEN" ] || [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::notice::Secrets not configured -- skipping live run."
+            echo "Add APIFY_TOKEN, ANTHROPIC_API_KEY (and SLACK_WEBHOOK_URL) as repo secrets to enable the daily scrape."
+            exit 0
+          fi
+          python pipeline.py
+
+      - name: Upload run output (leads + dashboard + monitoring log)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: intent-run-${{ github.run_number }}
+          path: |
+            figma-intent-tracker/data/leads-live.csv
+            figma-intent-tracker/dashboard.html
+            figma-intent-tracker/data/run_log.jsonl
+          if-no-files-found: ignore
+          retention-days: 30
