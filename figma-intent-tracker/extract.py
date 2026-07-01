@@ -98,9 +98,22 @@ def _map_comment(raw: dict, post_url: Optional[str]) -> Optional[Commenter]:
         comment_text=str(text).strip(),
         reaction=reaction,
         timestamp=raw.get("createdAt") or raw.get("timestamp"),
-        post_url=raw.get("postUrl") or post_url,
+        # Every surfaced lead needs a post link for the rep. Prefer an explicit postUrl,
+        # then the post being scraped, then reconstruct from the comment's postId urn so a
+        # multi-post extract (default_post=None) still yields a working link -- never "n/a".
+        post_url=raw.get("postUrl") or post_url or _post_url_from_id(raw.get("postId")),
         source="live",
     )
+
+
+def _post_url_from_id(post_id: Optional[str]) -> Optional[str]:
+    """Reconstruct a canonical post URL from the comment record's activity urn/id."""
+    if not post_id:
+        return None
+    pid = str(post_id).strip()
+    # accept 'urn:li:activity:123', 'activity:123', or a bare numeric id
+    urn = pid if pid.startswith("urn:li:activity:") else f"urn:li:activity:{pid.split(':')[-1]}"
+    return f"https://www.linkedin.com/feed/update/{urn}"
 
 
 def _is_author(raw: dict) -> bool:
