@@ -41,7 +41,13 @@ _DEMO_COMMENTS = os.path.join(os.path.dirname(__file__), "data", "demo_comments.
 _LIVE_OUT = os.path.join(os.path.dirname(__file__), "data", "comments-live.json")
 
 APIFY_ACTOR = os.environ.get("APIFY_ACTOR", "harvestapi~linkedin-post-comments")
-COMMENT_LIMIT = int(os.environ.get("APIFY_COMMENT_LIMIT", "40"))
+# On a lead-magnet post the value IS the commenters, so scrape deep: a viral bait post
+# can carry 100+ hand-raisers, and a low cap silently leaves ICP leads unscraped (a 40-cap
+# on one such post surfaced 3 ICP designers; scraping the full ~90 surfaced 8). Tradeoff:
+# more comments = more Apify credits + more classifier calls -- but the deterministic ICP
+# filter runs BEFORE the LLM, so off-ICP commenters (the bulk of a viral thread) cost zero
+# tokens regardless. Env-tunable for cheaper runs.
+COMMENT_LIMIT = int(os.environ.get("APIFY_COMMENT_LIMIT", "150"))
 
 
 def extract_demo() -> list[Commenter]:

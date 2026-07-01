@@ -143,6 +143,17 @@ context.
 **Tradeoff:** an extra LLM call per post. Worth it — it removes the largest source of
 noise (e.g., dropping ~24 of 35 posts in one run) before the expensive stages.
 
+**Decision: on a lead-magnet post, scrape the comments *deep*.** Once a post qualifies,
+the value *is* the commenters, so a shallow comment cap silently drops leads. Live proof:
+a viral *"build a website with Claude Code"* bait post had ~90 commenters, but a 40-comment
+cap only reached 20 of them — surfacing **3** ICP designers. Scraping the full set surfaced
+**8** (including two Webflow devs and two design leaders). The cap, not the filter, was the
+bottleneck. So `APIFY_COMMENT_LIMIT` defaults to **150** (env-tunable).
+**Tradeoff:** more comments = more Apify credits and more classifier calls — but the
+deterministic ICP filter runs *before* the LLM, so the bulk of a viral thread (63 of 87
+were off-ICP on that post) costs **zero tokens**. Token cost scales with ICP matches, not
+raw comment volume.
+
 ### 4.3 The displaceability reframe — "could Figma replace this?"
 
 **Decision: qualify a post by Figma-capability overlap, not the word "design."**
