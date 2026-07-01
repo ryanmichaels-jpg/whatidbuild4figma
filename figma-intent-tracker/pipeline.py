@@ -99,7 +99,7 @@ def richness_lever(decision: Decision, cls, richness_label: str | None,
     ):
         return Decision.surface, f"promoted to surface: rich evidence ({cls.intent_type.value})", None
     return decision, None, None
-from titles import classify_title
+from titles import classify_title, is_design_adjacent
 
 _GOLDEN = os.path.join(os.path.dirname(__file__), "data", "golden.json")
 
@@ -112,12 +112,18 @@ def process(commenter: Commenter, post_type: PostType | None, mode: str,
     quality_flag = None
 
     if title.status in (TitleStatus.excluded, TitleStatus.off_icp):
-        decision = Decision.drop
-        reason = (
-            f"off-ICP title ({title.matched_keyword})"
-            if title.status == TitleStatus.excluded
-            else "title present but not a buyer/user persona"
-        )
+        # safety net: a design-adjacent headline that missed an exact persona keyword is
+        # routed to human review, never silently dropped (an 'Interaction Designer' etc.).
+        if title.status == TitleStatus.off_icp and is_design_adjacent(commenter.headline):
+            decision = Decision.review
+            reason = "design-adjacent title, no exact persona match -- human review, not dropped"
+        else:
+            decision = Decision.drop
+            reason = (
+                f"off-ICP title ({title.matched_keyword})"
+                if title.status == TitleStatus.excluded
+                else "title present but not a buyer/user persona"
+            )
     elif title.status == TitleStatus.missing:
         decision = Decision.review
         reason = "missing title -- routed to human review, not dropped"

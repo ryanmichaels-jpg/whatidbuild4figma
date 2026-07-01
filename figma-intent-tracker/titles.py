@@ -26,6 +26,17 @@ _HR_CONTEXT = [
 # Officer (vs Chief People / Chief Procurement Officer).
 _CPO_PRODUCT_CONTEXT = ("product", "design", "ux", "ui")
 
+# Design/UX signals used as a SAFETY NET: a headline that shows one of these but didn't
+# match an exact ICP persona is design-adjacent -- route it to human review instead of a
+# silent drop. Kept narrow (no bare "ui", which is a substring of "building"/"guiding").
+_DESIGN_ADJACENT = ("design", "ux", "figma", "prototyp", "creative")
+
+
+def is_design_adjacent(headline: str | None) -> bool:
+    """True if a headline carries a design/UX signal. Used to route an unmatched but
+    plausibly-design headline to review rather than dropping it."""
+    return bool(headline) and any(sig in headline.lower() for sig in _DESIGN_ADJACENT)
+
 
 @lru_cache(maxsize=1)
 def _rules() -> dict:

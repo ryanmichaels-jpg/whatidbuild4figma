@@ -205,8 +205,14 @@ foregrounding as evidence of monitoring discipline:
   never under HR context** — catches the product exec, still rejects the people exec.
 
 **Tradeoff:** a deterministic filter has false negatives (a real buyer with an oddly
-phrased title). We mitigate by routing **missing titles to review, never a silent
-drop**, and by broadening the include lists when live data shows a miss.
+phrased title). We mitigate three ways: **missing titles route to review, never a silent
+drop**; we **broaden the include lists** when live data shows a miss (e.g. adding
+`interaction designer` after one was dropped); and a **design-adjacent safety net** —
+an off_icp headline that still carries a design/UX signal (`is_design_adjacent`) routes to
+**review** rather than drop, so an oddly-titled real designer is never silently lost. The
+safety net deliberately does **not** auto-surface (no persona match, no LLM spent) — a
+human qualifies it — so the "constrain before the model" precision story holds while the
+false-negative rate drops.
 
 ### 4.5 The classifier — cheapest capable model, schema-locked, post-conditioned
 

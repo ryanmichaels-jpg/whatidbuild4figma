@@ -51,7 +51,12 @@ generic scrape-and-spam pipeline. Hold these invariants:
    quote is dropped. Never relax this to a fuzzy/semantic match.
 
 3. **Missing title routes to review, never a silent drop.** Only an explicit
-   exclude rule or a present-but-non-buyer title is a drop.
+   exclude rule or a present-but-non-buyer, NON-design-adjacent title is a drop.
+   **Design-adjacent safety net:** an off_icp headline that carries a design/UX signal
+   (`titles.is_design_adjacent`) but missed every exact persona keyword routes to REVIEW,
+   not drop -- so an oddly-titled real designer (e.g. an "Interaction Designer") is never
+   silently lost. It still does NOT auto-surface (no persona match, no LLM call) -- a human
+   qualifies it. Keeps the "constrain before the LLM" precision story intact.
 
 4. **Schema-constrained classifier.** The LLM call uses `output_config` json_schema
    built from the pydantic model. Every field is required so the model cannot omit

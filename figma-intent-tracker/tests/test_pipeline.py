@@ -1,7 +1,7 @@
 import json
 import os
 
-from pipeline import funnel, precision_vs_golden, richness_lever, run, run_with_posts
+from pipeline import funnel, precision_vs_golden, process, richness_lever, run, run_with_posts
 from schema import Classification, Decision, IntentType, PostType
 from titles import classify_title
 
@@ -32,6 +32,23 @@ def test_lead_magnet_handraise_surfaces_thin_icp():
     assert richness_lever(Decision.review, curious, "thin", PostType.lead_magnet, icp, "praise")[0] == Decision.review
     # a moderate tire-kicker on a lead_magnet post is NOT a thin hand-raise -> normal path
     assert richness_lever(Decision.review, curious, "moderate", PostType.lead_magnet, icp)[0] == Decision.review
+
+def test_interaction_designer_now_matches():
+    from titles import classify_title
+    from schema import Persona, TitleStatus
+    t = classify_title("Interaction Design and Product at Context&Co")
+    assert t.status == TitleStatus.matched and t.persona == Persona.user
+
+
+def test_design_adjacent_officp_routes_to_review_not_drop():
+    from schema import Commenter, Decision, PostType
+    # 'design' signal but no exact persona keyword -> off_icp, but design-adjacent
+    c = Commenter(name="Test Person", headline="Design thinker & strategist",
+                  comment_text="interesting", profile_url="https://x", source="demo")
+    lead = process(c, PostType.lead_magnet, "demo")
+    assert lead.decision == Decision.review          # not dropped
+    assert lead.classification is None               # and no LLM tokens spent
+
 
 _GOLDEN = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "golden.json")
 

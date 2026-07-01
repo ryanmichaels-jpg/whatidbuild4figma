@@ -1,22 +1,161 @@
 {
   "_comment": "Constrain-outputs data. Deterministic ICP title filter runs BEFORE any LLM call. Include rules map a title keyword to a Figma buyer-committee persona/tier. Exclude rules drop non-buyers for free. Keep this file as the single source of truth for the filter.",
   "include": [
-    { "keywords": ["design systems lead", "design systems", "design technologist"], "persona": "champion" },
-    { "keywords": ["designops", "design ops", "design operations"], "persona": "champion" },
-    { "keywords": ["head of design", "head of ux", "design director", "director of design", "director of product design"], "persona": "champion" },
-    { "keywords": ["design lead", "ux lead", "product design lead", "lead designer", "principal designer", "staff designer", "design manager"], "persona": "champion" },
-    { "keywords": ["vp of design", "chief design officer", "cdo"], "persona": "economic_buyer" },
-    { "keywords": ["chief product officer", "vp of product", "head of product", "director of product"], "persona": "economic_buyer" },
-    { "keywords": ["vp of engineering", "head of engineering", "director of engineering", "engineering manager"], "persona": "economic_buyer" },
-    { "keywords": ["product designer", "ux designer", "ui designer", "ux researcher", "design engineer", "ui/ux", "ux/ui", "web designer"], "persona": "user" },
-    { "keywords": ["webflow", "content designer", "visual designer", "graphic designer", "creative designer", "presentation designer", "presentation specialist", "motion designer", "brand designer", "art director", "art direction", "digital designer"], "persona": "user" },
-    { "keywords": ["frontend", "front-end", "software engineer"], "persona": "user" },
-    { "keywords": ["head of it", "it admin", "ciso", "head of security", "procurement"], "persona": "gatekeeper" },
-    { "keywords": ["founder", "co-founder", "entrepreneur", "solopreneur", "indie", "no-code", "nocode", "no code", "product manager", "ceo", "maker"], "persona": "builder" }
+    {
+      "keywords": [
+        "design systems lead",
+        "design systems",
+        "design technologist"
+      ],
+      "persona": "champion"
+    },
+    {
+      "keywords": [
+        "designops",
+        "design ops",
+        "design operations"
+      ],
+      "persona": "champion"
+    },
+    {
+      "keywords": [
+        "head of design",
+        "head of ux",
+        "design director",
+        "director of design",
+        "director of product design"
+      ],
+      "persona": "champion"
+    },
+    {
+      "keywords": [
+        "design lead",
+        "ux lead",
+        "product design lead",
+        "lead designer",
+        "principal designer",
+        "staff designer",
+        "design manager"
+      ],
+      "persona": "champion"
+    },
+    {
+      "keywords": [
+        "vp of design",
+        "chief design officer",
+        "cdo"
+      ],
+      "persona": "economic_buyer"
+    },
+    {
+      "keywords": [
+        "chief product officer",
+        "vp of product",
+        "head of product",
+        "director of product"
+      ],
+      "persona": "economic_buyer"
+    },
+    {
+      "keywords": [
+        "vp of engineering",
+        "head of engineering",
+        "director of engineering",
+        "engineering manager"
+      ],
+      "persona": "economic_buyer"
+    },
+    {
+      "keywords": [
+        "product designer",
+        "ux designer",
+        "ui designer",
+        "ux researcher",
+        "design engineer",
+        "ui/ux",
+        "ux/ui",
+        "web designer",
+        "interaction designer",
+        "interaction design",
+        "product design"
+      ],
+      "persona": "user"
+    },
+    {
+      "keywords": [
+        "webflow",
+        "content designer",
+        "visual designer",
+        "graphic designer",
+        "creative designer",
+        "presentation designer",
+        "presentation specialist",
+        "motion designer",
+        "brand designer",
+        "art director",
+        "art direction",
+        "digital designer"
+      ],
+      "persona": "user"
+    },
+    {
+      "keywords": [
+        "frontend",
+        "front-end",
+        "software engineer"
+      ],
+      "persona": "user"
+    },
+    {
+      "keywords": [
+        "head of it",
+        "it admin",
+        "ciso",
+        "head of security",
+        "procurement"
+      ],
+      "persona": "gatekeeper"
+    },
+    {
+      "keywords": [
+        "founder",
+        "co-founder",
+        "entrepreneur",
+        "solopreneur",
+        "indie",
+        "no-code",
+        "nocode",
+        "no code",
+        "product manager",
+        "ceo",
+        "maker"
+      ],
+      "persona": "builder"
+    }
   ],
-  "exclude": ["recruiter", "talent acquisition", "open to work", "job seeker"],
-  "exclude_tokens": ["intern", "student"],
+  "exclude": [
+    "recruiter",
+    "talent acquisition",
+    "open to work",
+    "job seeker"
+  ],
+  "exclude_tokens": [
+    "intern",
+    "student"
+  ],
   "exclude_token_exceptions": {
-    "student": ["support", "success", "services", "service", "experience", "affairs", "advisor", "engagement", "recruitment", "ambassador", "advocate"]
+    "student": [
+      "support",
+      "success",
+      "services",
+      "service",
+      "experience",
+      "affairs",
+      "advisor",
+      "engagement",
+      "recruitment",
+      "ambassador",
+      "advocate"
+    ]
   }
 }
