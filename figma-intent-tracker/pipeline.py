@@ -18,10 +18,28 @@ import classify as classify_mod
 import discover as discover_mod
 import extract as extract_mod
 import posttype as posttype_mod
-from gate import decide
+from gate import CONFIDENCE_THRESHOLD, SURFACE_INTENTS, decide
 from notify import notify
+from richness import score_richness
 from schema import Commenter, Decision, Lead, PostType, TitleStatus
 from verify import verify
+
+
+def richness_lever(decision: Decision, cls, richness_label: str | None):
+    """Let evidence substance move a lead: a rich review lead earns a surface slot;
+    a thin one-word surface lead is held for human qualification. Bounded -- promotion
+    still requires surface-eligible intent + confidence + (already) a verbatim quote."""
+    if decision == Decision.surface and richness_label == "thin":
+        return Decision.review, "held for review: thin one-word evidence needs qualification"
+    if (
+        decision == Decision.review
+        and richness_label == "rich"
+        and cls is not None
+        and cls.intent_type in SURFACE_INTENTS
+        and cls.confidence >= CONFIDENCE_THRESHOLD
+    ):
+        return Decision.surface, f"promoted to surface: rich evidence ({cls.intent_type.value})"
+    return decision, None
 from titles import classify_title
 
 _GOLDEN = os.path.join(os.path.dirname(__file__), "data", "golden.json")
@@ -61,15 +79,21 @@ def process(commenter: Commenter, post_type: PostType | None, mode: str) -> Lead
         lead.quality_flag = quality_flag
         decision = new_decision
 
+    # richness + the richness lever (rich review -> surface, thin surface -> review)
+    if decision in (Decision.surface, Decision.review):
+        lead.richness, lead.richness_label = score_richness(commenter.comment_text)
+        levered, note = richness_lever(decision, cls, lead.richness_label)
+        if levered != decision:
+            lead.decision = levered
+            lead.reason = note
+            decision = levered
+
     # account match + expansion routing only for actionable leads (no CRM lookup on dropped noise)
     if decision in (Decision.surface, Decision.review):
         intent = cls.intent_type if cls else None
         account = accounts_mod.match_account(commenter.company, mode)
         lead.account = account
         lead.routing = accounts_mod.route(intent, account, commenter.company)
-        from richness import score_richness
-
-        lead.richness, lead.richness_label = score_richness(commenter.comment_text)
 
     return lead
 

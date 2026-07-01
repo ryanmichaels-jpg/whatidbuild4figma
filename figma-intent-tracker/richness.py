@@ -12,9 +12,9 @@ from discover import matched_displaced_tools
 
 _NEED_SIGNALS = [
     "need", "looking for", "wish", "problem", "limited", "frustrat", "switch", "instead",
-    "compared", " vs ", "versus", "trying", "evaluat", "struggle", "can't", "cannot",
+    "compar", " vs ", "versus", "trying", "evaluat", "struggle", "can't", "cannot",
     "doesn't", "does not", "however", "alternative", "prefer", "better than", "worse",
-    "too expensive", "pricing", "migrat",
+    "too expensive", "pricing", "migrat",  # 'compar' stems comparing/compared/comparison
 ]
 
 

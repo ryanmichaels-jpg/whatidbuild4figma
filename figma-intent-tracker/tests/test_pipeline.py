@@ -1,8 +1,21 @@
 import json
 import os
 
-from pipeline import funnel, precision_vs_golden, run, run_with_posts
-from schema import Decision, PostType
+from pipeline import funnel, precision_vs_golden, richness_lever, run, run_with_posts
+from schema import Classification, Decision, IntentType, PostType
+
+
+def _cls(intent, conf):
+    return Classification(intent_type=intent, need="n", evidence_quote="q", confidence=conf, suggested_angle="a")
+
+
+def test_richness_lever_promotes_rich_review_holds_thin_surface():
+    rich = _cls(IntentType.evaluating, 0.72)
+    assert richness_lever(Decision.review, rich, "rich")[0] == Decision.surface   # promote
+    assert richness_lever(Decision.surface, rich, "thin")[0] == Decision.review    # hold back
+    assert richness_lever(Decision.review, rich, "moderate")[0] == Decision.review # moderate stays
+    # curious is not surface-eligible, so richness can't promote it
+    assert richness_lever(Decision.review, _cls(IntentType.curious, 0.9), "rich")[0] == Decision.review
 
 _GOLDEN = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "golden.json")
 
@@ -24,8 +37,8 @@ def test_demo_funnel_counts():
     leads = run("demo")
     f = funnel(leads)
     assert f["extracted"] == 13
-    assert f["surfaced"] == 3
-    assert f["review"] == 4  # includes the builder/prospect routed to review
+    assert f["surfaced"] == 4  # includes the rich builder promoted by the richness lever
+    assert f["review"] == 3
     assert f["dropped"] == 6
 
 
