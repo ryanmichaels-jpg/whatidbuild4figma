@@ -22,6 +22,10 @@ _HR_CONTEXT = [
     "people and culture", "human resources", "chro", "fractional cpo", "people ops",
 ]
 
+# Product/design signals that disambiguate the "CPO" abbreviation toward Chief PRODUCT
+# Officer (vs Chief People / Chief Procurement Officer).
+_CPO_PRODUCT_CONTEXT = ("product", "design", "ux", "ui")
+
 
 @lru_cache(maxsize=1)
 def _rules() -> dict:
@@ -58,10 +62,20 @@ def classify_title(headline: str | None) -> TitleResult:
         if re.search(pat, text):
             return TitleResult(status=TitleStatus.excluded, matched_keyword=token)
 
-    # "CPO" is ambiguous (Chief Product vs Chief People Officer), so we require the
-    # full "chief product officer" and never assign the economic_buyer persona under
-    # HR/people context -- an HR leader is not a product/eng buyer.
+    # "CPO" is ambiguous (Chief Product vs Chief People vs Chief Procurement Officer).
+    # Never assign the economic_buyer persona under HR/people context -- an HR leader is
+    # not a product/eng buyer.
     hr_context = any(term in text for term in _HR_CONTEXT)
+
+    # ...but a Chief PRODUCT Officer who abbreviates ("CPO | Product, Design & Strategy")
+    # is a prime economic buyer. Resolve the abbreviation to economic_buyer only in a
+    # product/design context and only when NOT under HR context -- catches the real
+    # product exec, still rejects a Chief People Officer. (Live-data fix: a product CPO
+    # with a detailed Figma Make need was being dropped as off_icp.)
+    if re.search(r"\bcpo\b", text) and not hr_context and any(
+        sig in text for sig in _CPO_PRODUCT_CONTEXT
+    ):
+        return TitleResult(status=TitleStatus.matched, persona=Persona.economic_buyer, matched_keyword="cpo")
 
     for rule in rules["include"]:
         if rule["persona"] == "economic_buyer" and hr_context:

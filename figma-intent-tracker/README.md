@@ -197,8 +197,12 @@ foregrounding as evidence of monitoring discipline:
   service-phrase exception**.
 - `anima` (the handoff tool) matched "**anim**ation" everywhere → **whole-word** tool
   matching.
-- `cpo` matched a "**Chief People Officer**" (HR) as a product buyer → **require the
-  full "chief product officer," and never assign economic_buyer under HR context.**
+- `cpo` matched a "**Chief People Officer**" (HR) as a product buyer → never assign
+  economic_buyer under HR context. But over-correcting (requiring the fully-spelled
+  "chief product officer") then **dropped a real Chief *Product* Officer who abbreviated**
+  — *"CPO | Product, Design & Strategy"* with a detailed Figma Make need. Final rule:
+  resolve the `cpo` abbreviation to economic_buyer **only in a product/design context and
+  never under HR context** — catches the product exec, still rejects the people exec.
 
 **Tradeoff:** a deterministic filter has false negatives (a real buyer with an oddly
 phrased title). We mitigate by routing **missing titles to review, never a silent
