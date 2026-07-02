@@ -239,6 +239,9 @@ class Lead(BaseModel):
     account: Optional[Account] = None   # set for actionable (surface/review) leads
     routing: Optional[Routing] = None
     hygiene: Optional["HygieneFlag"] = None  # CRM-hygiene byproduct; NEVER affects decision/routing
+    figma_surface: Optional[FigmaSurface] = None  # the post's surface, for per-surface metrics
+    recipe: Optional[str] = None        # which discovery recipe surfaced this lead (segmentation)
+    rep_action: Optional[str] = None    # adoption feedback: booked / bad_lead / wrong_route / none
 
 
 def classification_json_schema() -> dict:

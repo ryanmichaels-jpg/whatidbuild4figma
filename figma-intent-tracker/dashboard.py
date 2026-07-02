@@ -54,6 +54,25 @@ def render(leads: list[Lead], mode: str, post_results: dict | None = None) -> st
     )
     prec = precision_vs_golden(leads)
 
+    # ADOPTION (top-line): do reps act on what we surface? (feedback attached by feedback.apply)
+    import feedback
+    _surf = [x for x in leads if x.decision == Decision.surface]
+    adoption = feedback.aggregate(_surf)
+    _ar = adoption["rep_action_rate"]
+    ar_s = "n/a" if _ar is None else f"{_ar:.0%}"
+    ba = adoption["by_action"]
+    surf_rate_html = "".join(
+        _bar(f"{k}", v["acted"], v["total"]) for k, v in sorted(adoption["by_figma_surface"].items())
+    ) or "<em>none</em>"
+    adoption_html = (
+        f'<h2>Adoption &mdash; do reps act on it? (top-line)</h2>'
+        f'<p>Rep action rate (acted / surfaced): <b>{ar_s}</b> &mdash; {adoption["acted"]}/{adoption["surfaced"]}<br>'
+        f'👍 booked {ba["booked"]} &middot; 👎 bad lead {ba["bad_lead"]} &middot; '
+        f'🔁 wrong route {ba["wrong_route"]} &middot; no action {ba["none"]}</p>'
+        f'<p class="meta">Reps are the labeling function: 👎 leads flow to data/golden_candidates.jsonl, '
+        f'grow the golden set, and retune the gates. Action rate by Figma surface:</p>{surf_rate_html}'
+    )
+
     def _acct_cell(x):
         a = x.account
         if a and a.matched:
@@ -147,6 +166,8 @@ def render(leads: list[Lead], mode: str, post_results: dict | None = None) -> st
 </style></head><body>
 <h1>Figma LinkedIn Intent Miner -- Monitoring</h1>
 <p class="meta">Mode: <b>{html.escape(mode)}</b> &middot; The trust layer is the product: every surfaced lead carries a verbatim evidence quote that passed a deterministic gate.</p>
+
+{adoption_html}
 
 <h2>Post-type gate</h2>
 <p class="meta">{posts_qualified} of {len(post_results)} posts qualified (lead_magnet / tool_question / tool_comparison). Showcases and off_topic posts are dropped before any comment is mined.</p>{post_html}

@@ -311,12 +311,29 @@ table/webhook, not a standalone app. The repo **simulates that interface** (the 
 block stands in for the Snowflake read) and deliberately builds **no Clay integration** — just
 makes the boundary explicit so the code reads like it was designed to slot in.
 
+### 4.7d Adoption feedback loop — reps are the labeling function
+
+**Decision: measuring precision isn't enough — measure whether reps ACT.**
+
+Precision vs. a golden set says the pipeline is *right*; it doesn't say the pipeline is
+*used*. So every Slack card carries a reaction footer — **👍 booked · 👎 bad lead · 🔁 wrong
+route** — and `feedback.py` collects those reactions (pluggable backend: a `demo` file for
+zero-key runs, a documented `slack_api` `reactions.get` flow for live). The dashboard's
+**top-line metric is now rep action rate (acted / surfaced)** — above precision — with
+per-Figma-surface and per-post-type breakdowns so you can see *which* signals reps act on.
+
+The point is the **loop**: a 👎 is a labeled negative → it's appended to
+`data/golden_candidates.jsonl` → reviewed and promoted into `golden.json` → the golden set
+grows → precision measurement improves → the gates get retuned. Reps labeling production data
+is how the trust layer keeps earning trust. (Per-lead feedback lives in `data/feedback.jsonl`,
+gitignored; the run log carries only the aggregates — no PII.)
+
 ### 4.8 Monitoring & the demo/live split
 
 - **Monitoring (`monitoring.py`):** every run computes a funnel, intent distribution,
-  hallucinations caught, verifier downgrades, and precision vs. the golden set, and
-  appends them to a run log so accuracy drift is visible over time. The dashboard
-  renders it.
+  hallucinations caught, verifier downgrades, precision vs. the golden set, and the
+  **adoption** aggregate (rep action rate), and appends them to a run log so accuracy
+  and adoption drift are visible over time. The dashboard renders it.
 - **Demo/live split:** **demo mode runs zero-credential** on committed synthetic,
   labeled fixtures + recorded LLM outputs. This is what makes the repo reproducible,
   testable (a golden-set eval), and safe to commit (no real people's data). **Live

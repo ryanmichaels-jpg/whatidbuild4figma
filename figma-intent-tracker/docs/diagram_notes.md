@@ -44,3 +44,17 @@ around the Snowflake/Clay node labeled *"production surface = Clay table/webhook
 here)"* so it's clear no Clay integration is built. It throws away nothing; it sharpens
 *timing* — which of the kept leads a rep should call today.
 
+---
+
+## Change 4 — Adoption feedback loop (the return arrow)
+
+**New arrows, closing the loop.** On the Slack card box, add a footer chip: **"👍 booked ·
+👎 bad lead · 🔁 wrong route."** Then draw a NEW return arrow from Slack back UP to the
+Monitor box labeled **"rep reactions."** From Monitor, add two outputs: (1) a relabel of the
+Monitor node's top metric to **"Rep action rate (acted/surfaced)"** — now the headline number,
+above precision; and (2) a dashed arrow from Monitor to a small store box **"golden_candidates
+→ golden set"** with a curving arrow back to the "Classify/Gate" region captioned *"reps label
+→ golden grows → gates retune."* This is the only arrow on the whole board that points
+*backward* — the feedback loop. It throws away nothing; it teaches the system what to throw
+away next time.
+

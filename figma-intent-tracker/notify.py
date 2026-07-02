@@ -54,6 +54,8 @@ def build_payload(lead: Lead) -> dict:
     if lead.hygiene and lead.hygiene.is_stale:
         kind = "job change" if lead.hygiene.status.value == "job_change" else "title mismatch"
         lines.append(f"⚠ SFDC contact may be stale ({kind}) -- {lead.hygiene.detail}")
+    # adoption feedback: reps are the labeling function (collected via feedback.py)
+    lines.append("React:  👍 booked  ·  👎 bad lead  ·  🔁 wrong route")
     return {"text": "\n".join(lines)}
 
 

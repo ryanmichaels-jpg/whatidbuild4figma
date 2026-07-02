@@ -176,6 +176,7 @@ def process(commenter: Commenter, post_type: PostType | None, mode: str,
     # NEVER affects decision/routing above. Just attaches a stale-record flag for a rep.
     lead.hygiene = hygiene_mod.check(commenter, mode)
 
+    lead.figma_surface = figma_surface  # for per-surface adoption/precision metrics
     return lead
 
 
@@ -307,6 +308,12 @@ def main() -> None:
     if digest:
         from notify import post_message
         post_message(digest)
+
+    # adoption feedback: collect rep reactions on surfaced leads, persist, grow golden candidates
+    import feedback
+    metrics["adoption"] = feedback.apply(leads, mode, ts)
+    print(f"adoption: {metrics['adoption']['acted']}/{metrics['adoption']['surfaced']} acted "
+          f"(rate {metrics['adoption']['rep_action_rate']})")
 
     monitoring.append_run_log(metrics, mode, ts)
 
