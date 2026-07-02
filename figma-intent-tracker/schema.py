@@ -77,6 +77,7 @@ class FigmaSurface(str, Enum):
     draw = "draw"
     buzz = "buzz"
     motion = "motion"
+    agent = "agent"  # Config-2026 Figma Agent / connectors: design-workflow automation & sync
     none = "none"  # Figma cannot displace this use case
 
 

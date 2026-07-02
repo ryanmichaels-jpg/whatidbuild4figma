@@ -5,7 +5,8 @@ Two questions, both must be yes:
      tool_question / tool_comparison; showcases and off_topic do not).
   2. FIGMA OVERLAP -- could Figma DISPLACE the solution the poster is offering? We
      map the post's use case to a Figma surface (design, make, sites, slides, figjam,
-     dev_mode, draw, buzz, motion) using the Config-2026 capability map. If Figma
+     dev_mode, draw, buzz, motion, agent) using the Config-2026 capability map, and
+     conditioned on the enabled discovery recipes. If Figma
      can't do it (interior decor, CAD, pure software engineering, business coaching),
      figma_surface = none and the post is dropped.
 
@@ -62,8 +63,15 @@ def _system_prompt() -> str:
         "making a deck -> slides; building an app/UI from a prompt -> make; animating UI -> "
         "motion; diagramming/whiteboarding -> figjam; UI/product design -> design. Interior "
         "room redesign, CAD, photo retouching, code review/refactoring, and business coaching "
-        "are NOT Figma (none).\n\n" + _capability_summary() + "\n\nReturn only JSON."
+        "are NOT Figma (none).\n\n" + _capability_summary() + _recipe_context() + "\n\nReturn only JSON."
     )
+
+
+def _recipe_context() -> str:
+    """Condition the classifier on the enabled Config-2026 signal recipes (prompt-only)."""
+    import recipes as recipes_mod
+    ctx = recipes_mod.classifier_context()
+    return "\n\n" + ctx if ctx else ""
 
 
 _POST_SCHEMA = {

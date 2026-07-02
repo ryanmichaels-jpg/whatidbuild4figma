@@ -45,6 +45,11 @@
       "what": "Figma Motion: animation on the canvas -- timeline, keyframes, presets, AI-generated motion; export to CSS/React/MP4/WebM/SVG/GIF; 3D transforms. Pitch: no After Effects, no tool switching for UI animation.",
       "use_cases": ["animate a design", "motion design", "UI animation/microinteractions", "get off After Effects for UI", "page transitions", "onboarding animations"],
       "displaces": ["After Effects (UI animation)", "Jitter", "Rive", "Lottie hand-authoring", "Principle", "ProtoPie"]
+    },
+    "agent": {
+      "what": "Config-2026 Figma Agent + Agent Skills + connectors: automate design-workflow glue -- keep Figma in sync with Notion/Jira/Slack, generate/maintain design-system docs, run reusable AI workflows, no manual busywork.",
+      "use_cases": ["automate design-ops busywork", "keep Figma and Notion/Jira in sync", "auto-update design system docs", "reusable AI design workflows", "design status updates"],
+      "displaces": ["Zapier/Make syncs touching Figma", "manual Notion/Confluence design docs", "design-ops glue scripts", "handoff status meetings"]
     }
   },
   "not_figma": [

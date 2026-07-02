@@ -359,8 +359,13 @@ ever sees a **normalized** form (`name/enabled/figma_surfaces/routing_overrides/
 verbatim gate, verify, richness). They're inherited by every recipe and cannot be bypassed by
 config. That's the reusable pattern the JD asks for: a GTM team ships a signal via PR (SalesOps
 reviews), inherits the whole trust layer for free, and *cannot* lower the quality bar. See
-`docs/ADDING_A_SIGNAL.md`. (The Config-2026 recipe ships `enabled: false` until ~10 golden posts
-per surface exist, per its own guidance.)
+`docs/ADDING_A_SIGNAL.md`. The **Config-2026 recipe is live** (`enabled: true`): its six feature
+signals (code_layers, motion, shaders, gen_plugins, weave, agent) drive discovery, its
+`GEN_PLUGINS`/`AGENT` surfaces route as `upsell`, and the post-type classifier is **conditioned on
+the enabled recipes** (`recipes.classifier_context()` feeds the Config-2026 feature map into the
+classifier prompt — prompt-only, never a gate). **Honest caveat:** the new surfaces don't yet have
+golden labels, so their precision is *unmeasured* until the golden set grows (via the 👎 feedback
+loop) — the base surfaces remain the measured ground truth.
 
 ### 4.10 Expansion-first economics (two lanes, not one)
 

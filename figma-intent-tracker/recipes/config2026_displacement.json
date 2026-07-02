@@ -1,7 +1,7 @@
 {
   "name": "config2026",
   "version": "config-2026.1",
-  "enabled": false,
+  "enabled": true,
   "figma_surfaces": [
     "CODE_LAYERS",
     "MOTION",

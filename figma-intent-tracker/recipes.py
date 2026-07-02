@@ -98,8 +98,8 @@ def _normalize(recipe: dict) -> dict:
     }
 
 
-def load_recipes(enabled_only: bool = True) -> list[dict]:
-    """Load, validate, and normalize every recipe in the recipes dir. Fails loud on a bad one."""
+def _load_raw(enabled_only: bool = True) -> list[dict]:
+    """Read + validate every recipe file. Fails loud on a bad one, naming the file."""
     d = _dir()
     schema = _schema()
     out = []
@@ -113,10 +113,27 @@ def load_recipes(enabled_only: bool = True) -> list[dict]:
         except json.JSONDecodeError as e:
             raise RecipeError(f"{fname}: invalid JSON ({e})")
         _validate(raw, fname, schema)
-        norm = _normalize(raw)
-        if norm["enabled"] or not enabled_only:
-            out.append(norm)
+        if raw.get("enabled") or not enabled_only:
+            out.append(raw)
     return out
+
+
+def load_recipes(enabled_only: bool = True) -> list[dict]:
+    """Load, validate, and NORMALIZE every recipe (engine-facing, gate-safe shape)."""
+    return [_normalize(r) for r in _load_raw(enabled_only)]
+
+
+def classifier_context(enabled_only: bool = True) -> str:
+    """Config context for the POST-TYPE classifier PROMPT ONLY -- lets the classifier condition
+    figma_surface on the enabled Config-2026 features. This is discovery/classification shaping,
+    NOT a gate: it can only inform how a post is labeled, never relax a trust gate.
+    """
+    lines = []
+    for r in _load_raw(enabled_only):
+        for f in r.get("features", []):
+            collapses = (f.get("what_it_collapses") or "")[:140]
+            lines.append(f"- {f['figma_surface']} ({f.get('feature', '')}): collapses {collapses}")
+    return "CONFIG-2026 SIGNALS IN PLAY (condition figma_surface on these):\n" + "\n".join(lines) if lines else ""
 
 
 # --- Engine-facing helpers (enabled recipes only) --------------------------------

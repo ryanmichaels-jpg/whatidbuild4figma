@@ -13,21 +13,28 @@ def test_both_shipped_recipes_load_and_validate():
     names = {r["name"]: r for r in all_r}
     assert set(names) == {"base_displacement", "config2026"}
     assert names["base_displacement"]["enabled"] is True
-    assert names["config2026"]["enabled"] is False  # ships disabled per its author's note
+    assert names["config2026"]["enabled"] is True  # now fully live
 
 
-def test_only_enabled_recipes_drive_discovery():
+def test_enabled_recipes_drive_discovery():
     qs = recipes.discovery_queries()  # enabled only
-    assert qs and all(r == "base_displacement" for _q, r, _s in qs)
+    driving = {r for _q, r, _s in qs}
+    assert driving == {"base_displacement", "config2026"}  # both live now
     tools = recipes.displaced_tools()
-    assert "after effects" in tools and "webflow" in tools
-    assert "comfyui" not in tools  # config2026 tool, recipe disabled -> not in discovery
+    assert "after effects" in tools and "webflow" in tools   # base
+    assert "comfyui" in tools                                # config2026 now enabled
 
 
 def test_routing_override_lookup():
     assert recipes.routing_override("GEN_PLUGINS", enabled_only=False) == "upsell"
-    assert recipes.routing_override("GEN_PLUGINS") is None          # config2026 disabled
+    assert recipes.routing_override("GEN_PLUGINS") == "upsell"      # config2026 now enabled
+    assert recipes.routing_override("AGENT") == "upsell"
     assert recipes.routing_override("nonexistent", enabled_only=False) is None
+
+
+def test_classifier_context_reflects_enabled_config2026():
+    ctx = recipes.classifier_context()
+    assert "CONFIG-2026" in ctx and "code_layers" in ctx  # classifier conditions on live features
 
 
 def test_normalized_recipe_cannot_carry_gate_config():
