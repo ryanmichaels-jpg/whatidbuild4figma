@@ -319,6 +319,23 @@ def main() -> None:
     print(f"adoption: {metrics['adoption']['acted']}/{metrics['adoption']['surfaced']} acted "
           f"(rate {metrics['adoption']['rep_action_rate']})")
 
+    # WAREHOUSE: Slack got the lead; Snowflake gets the memory. Best-effort -- never fails the run.
+    import warehouse
+    from warehouse import schemas as wsc
+    run_date = ts[:10]
+    try:
+        werr = 0
+        werr += warehouse.write_table("external_intent_events", wsc.build_intent_events(leads, run_date), run_date)
+        werr += warehouse.write_table("contact_observations", wsc.build_contact_observations(leads, run_date), run_date)
+        werr += warehouse.write_table("rep_outcomes", wsc.build_rep_outcomes(leads, run_date), run_date)
+        werr += warehouse.write_table("displaced_tool_trends", wsc.build_displaced_tool_trends(post_results, run_date), run_date)
+        werr += warehouse.write_table("run_telemetry", wsc.build_run_telemetry(metrics, mode, run_date, werr), run_date)
+        metrics["warehouse_write_errors"] = werr
+        print(f"warehouse: 5 tables written to data/warehouse/dt={run_date} ({werr} write errors)")
+    except Exception as e:  # best-effort: a warehouse problem never fails the run
+        metrics["warehouse_write_errors"] = -1
+        print(f"[warehouse] skipped (run continues): {e}")
+
     monitoring.append_run_log(metrics, mode, ts)
 
     leads_out = dump_leads(leads)
