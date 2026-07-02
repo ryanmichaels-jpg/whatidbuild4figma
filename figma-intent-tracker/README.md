@@ -268,6 +268,25 @@ the Salesforce API as the live integration point and labels every record's sourc
 **Nothing about real customers is fabricated.** On live runs, real companies don't
 match the synthetic CRM and correctly route as net-new — which is the honest outcome.
 
+### 4.7b CRM hygiene — one scrape, two workflows
+
+**Decision: the same scrape that finds leads also cleans the CRM — for free.**
+
+Figma's Marketing Ops team went on record (Clay case study) that their core GTM pain was
+**stale Salesforce contacts** — years of people who changed jobs or titles. But the miner
+already sees every commenter's **current** headline and company. So `hygiene.py` runs after
+the ICP filter, **deterministically and at zero tokens**, diffing the scraped profile
+against the SFDC contact record and emitting a flag: `job_change` (company moved),
+`title_stale` (same company, new title), `no_record` (net-new to the CRM), or `current`.
+
+Two rules make it trustworthy: **(1) it never auto-overwrites Salesforce** — flags go to a
+review queue (`data/hygiene_queue.jsonl`) and one compact Slack digest per run ("2 stale
+records: 1 job change, 1 title mismatch"), and a human confirms before any write; and
+**(2) it never touches lead scoring or routing** — it's a parallel output, not a gate. A
+surfaced lead with a stale record flows through normally and just gains one advisory line
+on its card. This is the JD's "CRM hygiene" bullet, covered as a byproduct rather than a
+second system.
+
 ### 4.8 Monitoring & the demo/live split
 
 - **Monitoring (`monitoring.py`):** every run computes a funnel, intent distribution,

@@ -3,6 +3,11 @@ data/*-live.json
 data/*-live.csv
 # run log can contain real lead data in live mode
 data/run_log.jsonl
+# CRM-hygiene review queue holds scraped names/titles (PII) in live mode
+data/hygiene_queue.jsonl
+# adoption feedback + golden candidates can reference scraped leads
+data/feedback.jsonl
+data/golden_candidates.jsonl
 
 # rendered artifact
 dashboard.html

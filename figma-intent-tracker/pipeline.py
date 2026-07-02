@@ -17,6 +17,7 @@ import accounts as accounts_mod
 import classify as classify_mod
 import discover as discover_mod
 import extract as extract_mod
+import hygiene as hygiene_mod
 import posttype as posttype_mod
 from gate import CONFIDENCE_THRESHOLD, SURFACE_INTENTS, decide
 from notify import notify
@@ -171,6 +172,10 @@ def process(commenter: Commenter, post_type: PostType | None, mode: str,
         lead.account = account
         lead.routing = accounts_mod.route(intent, account, commenter.company)
 
+    # CRM hygiene: a PARALLEL, deterministic byproduct of the scrape -- runs on every lead,
+    # NEVER affects decision/routing above. Just attaches a stale-record flag for a rep.
+    lead.hygiene = hygiene_mod.check(commenter, mode)
+
     return lead
 
 
@@ -287,6 +292,7 @@ def main() -> None:
 
     mode = os.environ.get("MODE", "demo")
     leads, post_results = run_with_posts(mode)
+    ts = datetime.datetime.utcnow().isoformat() + "Z"
 
     metrics = monitoring.compute(leads, post_results, _load_golden())
     print(f"mode={mode}  metrics={metrics}")
@@ -295,7 +301,14 @@ def main() -> None:
         if lead.decision == Decision.surface:
             notify(lead)
 
-    monitoring.append_run_log(metrics, mode, datetime.datetime.utcnow().isoformat() + "Z")
+    # CRM hygiene: queue stale records (no auto-write) and post ONE compact digest to Slack
+    hygiene_mod.append_queue(leads, ts)
+    digest = hygiene_mod.build_digest(leads)
+    if digest:
+        from notify import post_message
+        post_message(digest)
+
+    monitoring.append_run_log(metrics, mode, ts)
 
     leads_out = dump_leads(leads)
     print(f"leads ({len(leads)}) -> {leads_out}")

@@ -26,6 +26,9 @@ def compute(leads: list[Lead], post_results: dict[str, PostClassification], gold
     hallucinations = sum(1 for x in leads if "verbatim" in x.reason)
     verifier_downgrades = sum(1 for x in leads if x.quality_flag and x.quality_flag != "thin_handraise")
 
+    # CRM hygiene byproduct (deterministic, never affects routing) -- counts only, no PII
+    hyg = Counter(x.hygiene.status.value for x in leads if x.hygiene)
+
     m = {
         "posts_total": len(post_results),
         "posts_qualified": sum(1 for pc in post_results.values() if pc.qualifies),
@@ -37,6 +40,7 @@ def compute(leads: list[Lead], post_results: dict[str, PostClassification], gold
         "intent_distribution": dict(intents),
         "gate_hallucinations_caught": hallucinations,
         "verifier_downgrades": verifier_downgrades,
+        "hygiene": {k: hyg.get(k, 0) for k in ("job_change", "title_stale", "no_record", "current")},
     }
 
     if golden:

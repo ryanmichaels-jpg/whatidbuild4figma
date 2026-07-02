@@ -47,22 +47,37 @@ def build_payload(lead: Lead) -> dict:
         f"Suggested angle: {cls.suggested_angle}",
         f"Profile: {c.profile_url or 'n/a'}  |  Post: {c.post_url or 'n/a'}",
     ]
+    # CRM-hygiene byproduct: one advisory line if the SFDC contact looks stale. Never
+    # changes routing -- just tells the rep the CRM record may be out of date.
+    if lead.hygiene and lead.hygiene.is_stale:
+        kind = "job change" if lead.hygiene.status.value == "job_change" else "title mismatch"
+        lines.append(f"⚠ SFDC contact may be stale ({kind}) -- {lead.hygiene.detail}")
     return {"text": "\n".join(lines)}
 
 
-def notify(lead: Lead) -> dict:
-    """Send to Slack if configured, otherwise print the payload (demo). Returns the payload."""
-    payload = build_payload(lead)
+def post_message(text: str) -> dict:
+    """Post a plain-text message to Slack (used for the run's CRM-hygiene digest).
+
+    Same webhook path as notify(); prints instead of posting when no webhook is set, so
+    demo mode stays zero-credential.
+    """
+    payload = {"text": text}
     webhook = os.environ.get("SLACK_WEBHOOK_URL")
     if not webhook:
         print("[notify:demo] would POST to Slack:")
-        print(payload["text"])
+        print(text)
         return payload
     req = urllib.request.Request(
-        webhook,
-        data=json.dumps(payload).encode("utf-8"),
+        webhook, data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json"},
     )
     with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310 (trusted webhook URL)
         resp.read()
+    return payload
+
+
+def notify(lead: Lead) -> dict:
+    """Send one surfaced lead to Slack if configured, otherwise print it (demo)."""
+    payload = build_payload(lead)
+    post_message(payload["text"])
     return payload

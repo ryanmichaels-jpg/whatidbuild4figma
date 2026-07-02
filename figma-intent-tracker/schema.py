@@ -100,6 +100,35 @@ class SignalType(str, Enum):
     enrich = "enrich"           # no company captured -> enrich before routing
 
 
+class HygieneStatus(str, Enum):
+    """CRM-hygiene verdict from diffing the scraped profile vs the Salesforce contact.
+
+    A byproduct of the scrape: we already see every commenter's CURRENT title/company,
+    so we can flag stale CRM records for free. Flags go to a review queue -- never an
+    auto-overwrite -- and NEVER affect lead scoring or routing.
+    """
+
+    current = "current"          # SFDC matches the scraped profile -> no action
+    job_change = "job_change"    # company mismatch: person moved companies
+    title_stale = "title_stale"  # same company, title changed
+    no_record = "no_record"      # person not in SFDC (net-new to the CRM)
+
+
+class HygieneFlag(BaseModel):
+    status: HygieneStatus
+    detail: str = ""
+    contact_id: Optional[str] = None
+    sfdc_company: Optional[str] = None
+    sfdc_title: Optional[str] = None
+    scraped_company: Optional[str] = None
+    scraped_title: Optional[str] = None
+    source: str = "demo"
+
+    @property
+    def is_stale(self) -> bool:
+        return self.status in (HygieneStatus.job_change, HygieneStatus.title_stale)
+
+
 class PostClassification(BaseModel):
     """Schema-constrained post judgment.
 
@@ -195,6 +224,7 @@ class Lead(BaseModel):
     richness_label: Optional[str] = None
     account: Optional[Account] = None   # set for actionable (surface/review) leads
     routing: Optional[Routing] = None
+    hygiene: Optional["HygieneFlag"] = None  # CRM-hygiene byproduct; NEVER affects decision/routing
 
 
 def classification_json_schema() -> dict:

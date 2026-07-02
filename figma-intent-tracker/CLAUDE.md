@@ -79,6 +79,15 @@ generic scrape-and-spam pipeline. Hold these invariants:
    real customers. Account match + routing run only for actionable (surface/review)
    leads -- never a CRM lookup on dropped noise.
 
+7b. **CRM hygiene is a PARALLEL output, never a gate.** `hygiene.py` diffs the scraped
+   profile (current title/company) against the synthetic SFDC contact fixture
+   (`sfdc_contacts.json`) and attaches a `HygieneFlag` (job_change / title_stale /
+   no_record / current). It runs on every lead, deterministically, at zero tokens. It
+   MUST NOT affect `decision`, scoring, or `routing` -- a lead with a stale record still
+   flows through normally; its Slack card just gains one advisory line. Flags go to a
+   review queue (`data/hygiene_queue.jsonl`, gitignored) and ONE compact Slack digest per
+   run -- never an auto-overwrite of Salesforce. A human confirms before any CRM write.
+
 8. **Never commit real scraped people's data.** Live output goes to
    `data/*-live.json`, which is gitignored. Committed fixtures are synthetic and
    labeled. The golden set in `data/golden.json` is the eval's ground truth.

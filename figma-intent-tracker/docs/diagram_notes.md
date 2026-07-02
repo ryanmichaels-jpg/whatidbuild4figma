@@ -15,3 +15,18 @@ territory AE. Add a small caption under the Route node: *"Figma runs no SDR func
 the arrows into Slack changes; this is a relabel that makes the routing match the actual
 customer instead of a generic B2B org. It throws away nothing new — it corrects who the
 kept leads are handed to.
+
+---
+
+## Change 2 — CRM hygiene as a byproduct (new parallel branch)
+
+**New box:** a green "CRM Hygiene" node hanging off the **Extract commenters** node (or the
+ICP filter), on a *separate* rail from the main scoring spine. Its caption: *"diff scraped
+title/company vs Salesforce contact -- flag stale records, 0 tokens."* It does **not** feed
+the Route node; it feeds two new outputs at the bottom: a **"Hygiene review queue"** store
+box and a **"Slack: hygiene digest"** output box (one digest per run, not per lead). Draw a
+thin dashed line from the main Slack card to a small tag "⚠ stale-record line" to show a
+surfaced lead's card can carry a hygiene note. The key visual point: this branch **runs
+alongside** the trust chain and never touches it — one data source (the scrape), two
+workflows (leads + CRM hygiene). What it throws away: nothing; it *adds* a free output.
+

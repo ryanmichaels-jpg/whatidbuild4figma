@@ -42,6 +42,10 @@ def render(leads: list[Lead], mode: str, post_results: dict | None = None) -> st
     hallucinations = sum(1 for x in leads if "verbatim" in x.reason)
     downgrades = sum(1 for x in leads if x.quality_flag and x.quality_flag != "thin_handraise")
 
+    # CRM-hygiene byproduct (parallel output; never affects routing/scoring)
+    hyg = Counter(x.hygiene.status.value for x in leads if x.hygiene)
+    hyg_stale = hyg.get("job_change", 0) + hyg.get("title_stale", 0)
+
     personas = Counter(
         x.title.persona.value for x in leads if x.title.persona is not None
     )
@@ -151,6 +155,12 @@ def render(leads: list[Lead], mode: str, post_results: dict | None = None) -> st
 <h2>Quality checks</h2>
 <p>Hallucinated quotes caught by the gate: <b>{hallucinations}</b><br>
 Praise-mislabels downgraded by verification: <b>{downgrades}</b></p>
+
+<h2>CRM hygiene (byproduct of the scrape)</h2>
+<p class="meta">The scrape sees every commenter's CURRENT title/company, so stale Salesforce records surface for free. Flags go to a review queue &mdash; never an auto-overwrite &mdash; and never affect lead scoring or routing.</p>
+<p>Stale records flagged: <b>{hyg_stale}</b> (job change: {hyg.get('job_change', 0)}, title mismatch: {hyg.get('title_stale', 0)})<br>
+Not in CRM (net-new contacts): <b>{hyg.get('no_record', 0)}</b> &middot; Confirmed current: <b>{hyg.get('current', 0)}</b><br>
+Flags confirmed by a human: <b>__</b> (manual review of data/hygiene_queue.jsonl)</p>
 <h2>Persona breakdown (ICP tiers)</h2>{persona_html}
 <h2>Intent breakdown</h2>{intent_html}
 <h2>Quality vs golden set</h2>{eval_html}
