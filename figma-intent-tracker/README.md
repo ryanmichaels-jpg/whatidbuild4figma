@@ -362,6 +362,30 @@ reviews), inherits the whole trust layer for free, and *cannot* lower the qualit
 `docs/ADDING_A_SIGNAL.md`. (The Config-2026 recipe ships `enabled: false` until ~10 golden posts
 per surface exist, per its own guidance.)
 
+### 4.10 Expansion-first economics (two lanes, not one)
+
+**Decision: model the pipeline as expansion + net-new, because that's Figma's motion.**
+
+Figma's growth is expansion-led — **NDR 139%**, AEs own expansion, and there's **no CS team** —
+so an expansion signal is worth more than a cold net-new one and converts at a multiple. Routing
+already tags each lead's lane (existing-customer signals → *expansion*; no-match → *net-new*), so
+the dashboard now splits the pipeline into the two lanes, and the thesis math follows.
+
+Illustrative model (every number is a **labeled assumption**, to be replaced with real CRM data —
+the dashboard's business-impact figures stay blank with that caveat):
+
+| Lane | Leads/yr* | Lead→mtg | mtg→SQO | SQO→won | ACV | **Pipeline** | **Bookings** |
+|---|---|---|---|---|---|---|---|
+| Net-new | ~750 | 6% | 50% | 20% | $10K | **~$225K** | **~$45K** |
+| **Expansion** | ~500 | 12% | 60% | 35% | $15K | **~$540K** | **~$190K** |
+| **Blended** | ~1,250 | — | — | — | — | **~$765K** | **~$235K** |
+
+\* ~5 actionable ICP leads/day × ~250 run-days, split ~60/40 net-new/expansion (Config-2026
+`GEN_PLUGINS`/`AGENT` surfaces skew expansion). **The expansion lane is smaller in volume but the
+larger in value** — it's where a warm, AE-owned, higher-ACV, higher-win-rate signal compounds
+against 139% NDR. That's the honest headline: *one automated channel, and the expansion half does
+most of the work.* All rates are illustrative; week one you replace them with Figma's real funnel.
+
 ---
 
 ## 5. Compliance posture (a feature, not an afterthought)

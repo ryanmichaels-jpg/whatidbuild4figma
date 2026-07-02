@@ -82,3 +82,15 @@ overridable."* Add a "by recipe" tag on the Monitor node (metrics segment per re
 this tells: anyone can add a signal (a card), nobody can weaken the gates (the wall). It throws
 away nothing new; it makes the whole pipeline *reusable* for any signal.
 
+---
+
+## Change 7 — Expansion-first economics (split the output)
+
+**Split the final output, don't just count leads.** At the Route node's outputs, group the three
+branches into **two labeled lanes**: an **"Expansion"** lane (churn/expansion + upsell → AE) and a
+**"Net-new"** lane (net-new → territory AE). Draw the Expansion lane thicker / highlighted with a
+tag *"NDR 139% · AEs own expansion · no CS team — the bigger-value lane."* Under the Slack card, add
+a small two-column "pipeline" card: **Net-new ~$225K · Expansion ~$540K (illustrative, confirm w/
+real CRM)** so the value story is on the board. The point the visual makes: fewer expansion leads,
+but they're where the money is — the same reason routing is expansion-first.
+

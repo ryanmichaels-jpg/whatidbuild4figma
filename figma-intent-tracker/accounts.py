@@ -97,6 +97,19 @@ def match_account(company: str | None, mode: str = "demo") -> Account | None:
 
 _STRONG_INTENT = {IntentType.active_need, IntentType.evaluating}
 
+# Figma's money is expansion (NDR 139%, AEs own expansion, no CS team), so we split the
+# pipeline into two lanes: existing-customer signals vs net-new logos.
+_EXPANSION_SIGNALS = {SignalType.upsell, SignalType.expansion, SignalType.churn_risk}
+
+
+def lane(signal_type: SignalType | None) -> str:
+    """Which pipeline lane a routed lead belongs to: expansion / net-new / unknown."""
+    if signal_type in _EXPANSION_SIGNALS:
+        return "expansion"
+    if signal_type == SignalType.net_new:
+        return "net-new"
+    return "unknown"
+
 
 def route(intent_type: IntentType | None, account: Account | None, company: str | None,
           recipe_surface: str | None = None) -> Routing:

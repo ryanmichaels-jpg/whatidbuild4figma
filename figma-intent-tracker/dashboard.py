@@ -125,6 +125,12 @@ def render(leads: list[Lead], mode: str, post_results: dict | None = None) -> st
     routing_html = (
         "".join(_bar(k, v, len(routed) or 1) for k, v in sorted(signals.items())) or "<em>none</em>"
     )
+    # expansion-first: split routed leads into expansion vs net-new lanes (Figma NDR 139%)
+    import accounts as _accounts
+    lanes = Counter(_accounts.lane(x.routing.signal_type) for x in routed)
+    lane_html = (
+        "".join(_bar(k, v, len(routed) or 1) for k, v in sorted(lanes.items())) or "<em>none</em>"
+    )
     customer_html = (
         "".join(_bar(k, v, len(routed) or 1) for k, v in sorted(customer_split.items())) or "<em>none</em>"
     )
@@ -197,6 +203,8 @@ Flags confirmed by a human: <b>__</b> (manual review of data/hygiene_queue.jsonl
 <p class="meta">Across actionable (surfaced + review) leads. Synthetic accounts in demo mode; Salesforce API in live.</p>
 <b>Signal type</b>{routing_html}
 <b>Customer vs net-new</b>{customer_html}
+<b>Pipeline lane (expansion vs net-new)</b>{lane_html}
+<p class="meta">Figma's money is expansion (NDR 139%; AEs own expansion, no CS team). Expansion leads &mdash; especially GEN_PLUGINS/AGENT surfaces &mdash; convert at a multiple of cold net-new, so this split is the one to watch.</p>
 
 <h2>Surfaced leads ({f['surfaced']})</h2>
 <table><tr><th>Name</th><th>Headline</th><th>Company</th><th>Salesforce account</th><th>Signal</th><th>Richness</th><th>Route to</th><th>Persona/Intent</th><th>Evidence (verbatim)</th></tr>

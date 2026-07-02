@@ -71,6 +71,16 @@ def test_intercept_cools_curious_heavy_user_to_nurture():
     assert "nurture" in r.rationale
 
 
+def test_lane_splits_expansion_vs_net_new():
+    from accounts import lane
+    from schema import SignalType
+    assert lane(SignalType.churn_risk) == "expansion"
+    assert lane(SignalType.upsell) == "expansion"
+    assert lane(SignalType.expansion) == "expansion"
+    assert lane(SignalType.net_new) == "net-new"
+    assert lane(SignalType.enrich) == "unknown"
+
+
 def test_why_now_line_is_populated_from_the_join():
     a = match_account_demo("Northwind")
     r = route(IntentType.active_need, a, "Northwind")

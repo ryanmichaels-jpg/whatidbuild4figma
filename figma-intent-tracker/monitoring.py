@@ -32,6 +32,10 @@ def compute(leads: list[Lead], post_results: dict[str, PostClassification], gold
     # segment by the discovery recipe that surfaced each lead (a bad recipe is visible/revertable)
     by_recipe = Counter((x.recipe or "base_displacement") for x in leads)
 
+    # expansion-first: split routed leads into expansion vs net-new lanes (Figma NDR 139%)
+    import accounts
+    by_lane = Counter(accounts.lane(x.routing.signal_type) for x in leads if x.routing)
+
     m = {
         "posts_total": len(post_results),
         "posts_qualified": sum(1 for pc in post_results.values() if pc.qualifies),
@@ -45,6 +49,7 @@ def compute(leads: list[Lead], post_results: dict[str, PostClassification], gold
         "verifier_downgrades": verifier_downgrades,
         "hygiene": {k: hyg.get(k, 0) for k in ("job_change", "title_stale", "no_record", "current")},
         "by_recipe": dict(by_recipe),
+        "by_lane": dict(by_lane),
     }
 
     if golden:
