@@ -41,6 +41,8 @@ def build_payload(lead: Lead) -> dict:
         lines.append("Salesforce: no account match (net-new)")
     if r:
         lines.append(f"Route to: {r.recipient}  --  {r.rationale}")
+        if r.why_now:
+            lines.append(f"Why now: {r.why_now}")
     lines += [
         f"Need: {cls.need}",
         f"Evidence (verbatim): \"{cls.evidence_quote}\"",

@@ -30,3 +30,17 @@ surfaced lead's card can carry a hygiene note. The key visual point: this branch
 alongside** the trust chain and never touches it — one data source (the scrape), two
 workflows (leads + CRM hygiene). What it throws away: nothing; it *adds* a free output.
 
+---
+
+## Change 3 — Intercept score (intent × product signal)
+
+**Node to add:** a small violet input box to the LEFT of the "Route (Salesforce)" node,
+labeled **"Snowflake product signals (via Clay)"** — Pro seats, seat growth, feature
+adoption. Draw an arrow from it INTO the Route node so Route now has two inputs: the intent
+(from the trust chain) and the usage signal. Relabel Route's caption: *"intent × usage
+intercept — escalate expansion-ready, cool curious-heavy to nurture."* Add a "Why now" tag
+on the arrow from Route → Slack (e.g. "300 Pro seats, +38%/90d"). Put a dashed boundary box
+around the Snowflake/Clay node labeled *"production surface = Clay table/webhook (simulated
+here)"* so it's clear no Clay integration is built. It throws away nothing; it sharpens
+*timing* — which of the kept leads a rep should call today.
+

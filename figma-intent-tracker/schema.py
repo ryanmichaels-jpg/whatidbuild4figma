@@ -183,6 +183,18 @@ class Classification(BaseModel):
     )
 
 
+class ProductSignals(BaseModel):
+    """Internal usage signals per account -- in production these live in Snowflake and are
+    joined to the external intent signal by Clay (Figma's orchestration layer). Here they
+    are a synthetic block on the account fixture so the join can be demonstrated end-to-end.
+    """
+
+    pro_seats: Optional[int] = None
+    seat_growth_90d_pct: Optional[float] = None   # + = expanding, 0/None = flat
+    feature_adoption: list[str] = []              # e.g. ["design", "motion", "dev_mode"]
+    last_active_days: Optional[int] = None        # days since last active (lower = warmer)
+
+
 class Account(BaseModel):
     """A Salesforce account match for a commenter's company.
 
@@ -198,6 +210,7 @@ class Account(BaseModel):
     seats: Optional[int] = None
     arr_usd: Optional[int] = None
     account_owner: Optional[str] = None  # the AE who owns the account
+    product_signals: Optional[ProductSignals] = None  # internal usage (Snowflake, via Clay)
     source: str = "demo"             # "demo" (synthetic) or "live" (Salesforce)
 
 
@@ -208,6 +221,7 @@ class Routing(BaseModel):
     priority: int                    # 0 = highest (P0) .. 3 = lowest
     recipient: str                   # who acts: always a territory AE (Figma runs no SDR function)
     rationale: str
+    why_now: Optional[str] = None    # the intent x product-signal join, in one line, for the rep
 
 
 class Lead(BaseModel):

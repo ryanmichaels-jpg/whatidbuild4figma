@@ -1,10 +1,10 @@
 {
-  "_comment": "SYNTHETIC Salesforce accounts fixture for demo mode. Fabricated, not real Figma CRM data. Lets the account-match + expansion-routing stage run zero-cred and be tested. In live mode this is replaced by the Salesforce API (see accounts.py). Match is by normalized company name.",
+  "_comment": "SYNTHETIC Salesforce accounts fixture for demo mode. Fabricated, not real Figma CRM data. Lets the account-match + expansion-routing stage run zero-cred and be tested. In live mode this is replaced by the Salesforce API (see accounts.py). Match is by normalized company name. The `product_signals` block simulates internal usage from Snowflake (joined by Clay in production) so the intent x usage intercept score can be demonstrated.",
   "accounts": [
-    {"account_name": "Acme", "aliases": ["acme", "acme inc", "acme corp"], "is_customer": true, "plan": "enterprise", "seats": 1200, "arr_usd": 480000, "account_owner": "Priya Anand (AE, Enterprise)"},
-    {"account_name": "Northwind", "aliases": ["northwind", "northwind co"], "is_customer": true, "plan": "org", "seats": 300, "arr_usd": 120000, "account_owner": "Marcus Lee (AE, Mid-Market)"},
-    {"account_name": "Brightloom", "aliases": ["brightloom"], "is_customer": true, "plan": "free", "seats": 8, "arr_usd": 0, "account_owner": "Growth Pod (PLG)"},
-    {"account_name": "Glasshouse", "aliases": ["glasshouse"], "is_customer": true, "plan": "pro", "seats": 40, "arr_usd": 6000, "account_owner": "Dana Kim (AE, SMB)"},
-    {"account_name": "Vaultline", "aliases": ["vaultline"], "is_customer": false, "plan": "none", "seats": null, "arr_usd": null, "account_owner": "Sara Okoye (AE, prospecting)"}
+    {"account_name": "Acme", "aliases": ["acme", "acme inc", "acme corp"], "is_customer": true, "plan": "enterprise", "seats": 1200, "arr_usd": 480000, "account_owner": "Priya Anand (AE, Enterprise)", "product_signals": {"pro_seats": 1200, "seat_growth_90d_pct": 12, "feature_adoption": ["design", "dev_mode"], "last_active_days": 1}},
+    {"account_name": "Northwind", "aliases": ["northwind", "northwind co"], "is_customer": true, "plan": "org", "seats": 300, "arr_usd": 120000, "account_owner": "Marcus Lee (AE, Mid-Market)", "product_signals": {"pro_seats": 300, "seat_growth_90d_pct": 38, "feature_adoption": ["design", "motion"], "last_active_days": 2}},
+    {"account_name": "Brightloom", "aliases": ["brightloom"], "is_customer": true, "plan": "free", "seats": 8, "arr_usd": 0, "account_owner": "Growth Pod (PLG)", "product_signals": {"pro_seats": 8, "seat_growth_90d_pct": 0, "feature_adoption": ["design"], "last_active_days": 6}},
+    {"account_name": "Glasshouse", "aliases": ["glasshouse"], "is_customer": true, "plan": "pro", "seats": 40, "arr_usd": 6000, "account_owner": "Dana Kim (AE, SMB)", "product_signals": {"pro_seats": 40, "seat_growth_90d_pct": 5, "feature_adoption": ["design", "slides"], "last_active_days": 3}},
+    {"account_name": "Vaultline", "aliases": ["vaultline"], "is_customer": false, "plan": "none", "seats": null, "arr_usd": null, "account_owner": "Sara Okoye (AE, prospecting)", "product_signals": null}
   ]
 }

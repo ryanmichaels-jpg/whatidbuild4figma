@@ -50,3 +50,31 @@ def test_unknown_company_is_net_new_to_ae():
 def test_no_company_routes_to_enrich():
     r = route(IntentType.active_need, None, None)
     assert r.signal_type == SignalType.enrich
+
+
+# --- Change 3: intent x product-signal intercept ---
+
+def test_intercept_escalates_active_need_when_seats_growing():
+    # Glasshouse: pro customer, +5% seats/90d -> base upsell P1 escalates to P0
+    a = match_account_demo("Glasshouse")
+    assert a.product_signals and a.product_signals.seat_growth_90d_pct > 0
+    r = route(IntentType.active_need, a, "Glasshouse")
+    assert r.priority == 0
+    assert "intercept" in r.rationale and "expansion-ready" in r.rationale
+
+
+def test_intercept_cools_curious_heavy_user_to_nurture():
+    # Acme: enterprise, 1200 seats, active 1 day ago -> curious becomes nurture (P3)
+    a = match_account_demo("Acme")
+    r = route(IntentType.curious, a, "Acme")
+    assert r.priority == 3
+    assert "nurture" in r.rationale
+
+
+def test_why_now_line_is_populated_from_the_join():
+    a = match_account_demo("Northwind")
+    r = route(IntentType.active_need, a, "Northwind")
+    assert r.why_now and "seats" in r.why_now
+    # net-new (no footprint) still gets a why_now
+    r2 = route(IntentType.active_need, match_account_demo("Avery Labs"), "Avery Labs")
+    assert r2.why_now and "net-new" in r2.why_now

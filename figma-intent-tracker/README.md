@@ -287,6 +287,30 @@ surfaced lead with a stale record flows through normally and just gains one advi
 on its card. This is the JD's "CRM hygiene" bullet, covered as a byproduct rather than a
 second system.
 
+### 4.7c Stack-aware routing — the intent × usage intercept (where this lives at Figma)
+
+**Decision: external intent is only half the join — score it against internal usage.**
+
+Figma decides *when sales intercepts a PLG account* by joining **internal product signals
+(Snowflake)** with **external signals (Clay)**. This pipeline is the external half. So after
+the base CRM route, an **intercept pass** (`accounts._apply_intercept`, deterministic, no
+LLM) joins the intent label with a synthetic `product_signals` block (Pro seats, 90-day seat
+growth, feature adoption, recency) and adjusts **timing**:
+
+- **active_need + seats already growing → escalate one priority tier** ("expansion-ready, warm").
+- **curious + heavy usage → nurture/insight, not a call task** (don't burn a hot account on a tire-kick).
+- **active_need + no product footprint → standard net-new** (unchanged).
+
+Every card gets a **"Why now"** line derived from the join — e.g. *"active_need at an account
+with 300 Pro seats, +38% seats/90d, uses design, motion."* That's the difference between "here's
+a lead" and "here's why a rep should call *today*."
+
+**Where it lives at Figma / honesty:** in production this join runs in **Clay**, reading
+**Snowflake** and firing playbook functions to reps — so this module's real surface is a Clay
+table/webhook, not a standalone app. The repo **simulates that interface** (the `product_signals`
+block stands in for the Snowflake read) and deliberately builds **no Clay integration** — just
+makes the boundary explicit so the code reads like it was designed to slot in.
+
 ### 4.8 Monitoring & the demo/live split
 
 - **Monitoring (`monitoring.py`):** every run computes a funnel, intent distribution,

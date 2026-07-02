@@ -13,6 +13,14 @@ and expansion. So every human-routed lane here goes to an AE, never an SDR.
 Demo mode reads a synthetic, clearly-labeled accounts fixture so the stage runs
 zero-cred and is testable. Live mode would query the Salesforce API
 (match_account_live). Real customer data is never fabricated.
+
+WHERE THIS LIVES AT FIGMA: the intercept score joins the EXTERNAL intent signal (this
+pipeline) with INTERNAL product usage (Snowflake). In Figma's stack that join runs in
+Clay -- their orchestration layer -- which reads Snowflake, matches Salesforce, and fires
+"playbook functions" to reps. So this module's production surface is a Clay table/webhook
+input, not a standalone system: this repo simulates that interface (the `product_signals`
+block stands in for the Snowflake read) so the routing reads exactly as it would slotted in.
+No Clay integration is built here on purpose -- only the boundary is made explicit.
 """
 from __future__ import annotations
 
@@ -21,7 +29,7 @@ import os
 import re
 from functools import lru_cache
 
-from schema import Account, IntentType, PlanTier, Routing, SignalType
+from schema import Account, IntentType, PlanTier, ProductSignals, Routing, SignalType
 
 _DATA = os.path.join(os.path.dirname(__file__), "data", "sfdc_accounts.json")
 
@@ -48,6 +56,7 @@ def match_account_demo(company: str) -> Account:
         for acct in _fixture():
             names = {_normalize(acct["account_name"]), *(_normalize(a) for a in acct.get("aliases", []))}
             if norm in names:
+                ps = acct.get("product_signals")
                 return Account(
                     query_company=company,
                     matched=True,
@@ -57,6 +66,7 @@ def match_account_demo(company: str) -> Account:
                     seats=acct.get("seats"),
                     arr_usd=acct.get("arr_usd"),
                     account_owner=acct.get("account_owner"),
+                    product_signals=ProductSignals(**ps) if ps else None,
                     source="demo",
                 )
     return Account(query_company=company, matched=False, source="demo")
@@ -88,6 +98,56 @@ _STRONG_INTENT = {IntentType.active_need, IntentType.evaluating}
 
 
 def route(intent_type: IntentType | None, account: Account | None, company: str | None) -> Routing:
+    """Expansion-first routing, then a stack-aware INTERCEPT pass.
+
+    The base route decides signal/priority/recipient from the CRM match. The intercept pass
+    then joins the EXTERNAL intent signal with INTERNAL product usage -- the exact join Figma
+    runs in Clay over Snowflake -- to decide *timing*: escalate an active need at an account
+    whose seats are already growing (expansion-ready), and cool a merely-curious lead at a
+    heavy-usage account into a nurture, not a call. Every lead gets a one-line "why now".
+    """
+    base = _base_route(intent_type, account, company)
+    return _apply_intercept(base, intent_type, account)
+
+
+def _why_now(intent_type: IntentType | None, account: Account | None) -> str:
+    """One-line intent x product-signal summary for the rep."""
+    it = intent_type.value if intent_type else "unknown-intent"
+    ps = account.product_signals if account else None
+    if account and account.is_customer and ps:
+        parts = []
+        if ps.pro_seats is not None:
+            parts.append(f"{ps.pro_seats} Pro seats")
+        if ps.seat_growth_90d_pct is not None:
+            parts.append(f"{ps.seat_growth_90d_pct:+.0f}% seats/90d")
+        if ps.feature_adoption:
+            parts.append("uses " + ", ".join(ps.feature_adoption))
+        ctx = "; ".join(parts) if parts else "existing customer"
+        return f"{it} at an account with {ctx}"
+    return f"{it}; no product footprint (net-new)"
+
+
+def _apply_intercept(base: Routing, intent_type: IntentType | None, account: Account | None) -> Routing:
+    """Deterministic intent x usage rules (documented, no LLM). Adjusts timing only."""
+    base.why_now = _why_now(intent_type, account)
+    ps = account.product_signals if (account and account.is_customer) else None
+    growing = bool(ps and (ps.seat_growth_90d_pct or 0) > 0)
+    heavy = bool(ps and (ps.pro_seats or 0) >= 100 and (ps.last_active_days is None or ps.last_active_days <= 14))
+
+    if intent_type == IntentType.active_need and growing:
+        # expansion-ready + warm: escalate one priority tier
+        base.priority = max(0, base.priority - 1)
+        base.rationale += " | intercept: seats already growing -- expansion-ready, escalated a tier"
+    elif intent_type == IntentType.curious and heavy:
+        # curious but already a heavy user: nurture/insight, not a call task
+        base.signal_type = SignalType.expansion
+        base.priority = 3
+        base.rationale += " | intercept: curious but heavy usage -- nurture/insight, not a call"
+    # active_need + no product footprint -> standard net-new (base already correct)
+    return base
+
+
+def _base_route(intent_type: IntentType | None, account: Account | None, company: str | None) -> Routing:
     """Expansion-first routing: decide signal type, priority (0=highest), and recipient."""
     if not company:
         return Routing(
