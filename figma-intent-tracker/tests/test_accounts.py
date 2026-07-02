@@ -38,11 +38,13 @@ def test_known_non_customer_is_net_new():
     assert r.signal_type == SignalType.net_new
 
 
-def test_unknown_company_is_net_new_sdr():
+def test_unknown_company_is_net_new_to_ae():
+    # Figma has no SDR function: net-new routes to a territory AE, never an SDR.
     a = match_account_demo("Avery Labs")
     r = route(IntentType.active_need, a, "Avery Labs")
     assert r.signal_type == SignalType.net_new
-    assert "SDR" in r.recipient
+    assert "AE" in r.recipient
+    assert "SDR" not in r.recipient
 
 
 def test_no_company_routes_to_enrich():

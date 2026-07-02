@@ -35,7 +35,7 @@ generic scrape-and-spam pipeline. Hold these invariants:
    **Lead-magnet exception:** on a `lead_magnet` post the intent lives in the ACT of raising
    a hand for the post's resource, not in the words -- so a THIN one-word comment from an
    ICP-matched buyer/user (persona matched, NOT the looser `builder` tier) STAYS surfaced,
-   tagged `quality_flag="thin_handraise"` for a light SDR qualification touch. This applies
+   tagged `quality_flag="thin_handraise"` for a light AE qualification touch. This applies
    ONLY to lead_magnet posts (on tool_question / tool_comparison posts the commenter must
    reveal intent in words, so thin still -> review). The verbatim gate and ICP filter still
    hold: the surfaced quote is the person's real comment, and only a matched buyer/user

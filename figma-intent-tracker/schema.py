@@ -177,7 +177,7 @@ class Routing(BaseModel):
 
     signal_type: SignalType
     priority: int                    # 0 = highest (P0) .. 3 = lowest
-    recipient: str                   # who acts: the AE (account owner) or an SDR
+    recipient: str                   # who acts: always a territory AE (Figma runs no SDR function)
     rationale: str
 
 

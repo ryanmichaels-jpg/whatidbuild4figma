@@ -62,7 +62,7 @@ def richness_lever(decision: Decision, cls, richness_label: str | None,
     On a lead_magnet post the intent lives in the ACT of raising a hand for the post's
     resource, not in the words: a THIN one-word comment from an ICP-matched buyer/user
     (not the looser `builder` tier) is surfaced as a hand-raise -- kept surfaced, or
-    promoted out of an ambiguous-intent review -- flagged for a light SDR qualification
+    promoted out of an ambiguous-intent review -- flagged for a light AE qualification
     touch. Skipped if verify flagged the comment as praise (praise on a bait post is
     engagement, not a request). Everywhere else, a thin one-word surface lead is held for
     review, and a rich review lead earns a surface slot (surface-eligible intent + conf +

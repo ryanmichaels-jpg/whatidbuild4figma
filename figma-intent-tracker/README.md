@@ -56,7 +56,7 @@ CLASSIFY   claude-haiku-4-5, schema-constrained, conditioned on the post type,
 GATE       no surfaced lead without a VERBATIM evidence quote (exact substring)
 VERIFY     downgrade a surfaced lead whose quote reads as praise, not intent
 RICHNESS   grade how much the comment actually says (thin hand-raise → rich)
-ACCOUNT    match company → Salesforce → expansion-first routing (AE vs SDR, P0–P3)
+ACCOUNT    match company → Salesforce → expansion-first routing (territory AE, P0–P3)
 NOTIFY     Slack per surfaced lead (human-in-the-loop — never auto-DMs a prospect)
 MONITOR    funnel + per-run metrics + append-only run log + static HTML dashboard
 ```
@@ -81,7 +81,7 @@ decision log — what we chose, what we traded away, and why.
 | **Monitoring** | `monitoring.py` + `dashboard.py` | Funnel, hallucinations caught, verifier downgrades, precision vs golden, run log |
 
 The recurring principle: **the LLM proposes bounded fields; deterministic code
-disposes.** The model never decides "surface this" or "route to an SDR" — it returns
+disposes.** The model never decides "surface this" or "route to an AE" — it returns
 an intent label, a confidence, and a quote, and plain, auditable `if`-statements make
 every consequential decision. A hallucinated quote can't escape a substring check no
 matter how confident the model is.
@@ -252,8 +252,14 @@ model. Deterministic and cheap on purpose.
 **expansion-first**: an existing paid customer showing design-tool intent is a
 **churn/expansion alert to the Account Owner (AE)** (engage the buyer, not the
 commenter); a free/pro customer is an **upsell**; a no-match company is a **net-new
-SDR lead**. Priority P0–P3 by account tier + intent. This is the literal expansion
-motion the JD describes — public intent → CRM context → the right rep, the right play.
+lead for the territory AE**. Priority P0–P3 by account tier + intent. This is the
+literal expansion motion the JD describes — public intent → CRM context → the right
+rep, the right play.
+
+**Routing reflects Figma's actual org — no SDR function.** Figma's CRO has said
+publicly that Figma runs no SDR team; AEs own the full motion including net-new and
+expansion (source: 20Sales podcast, Mar 2026). So every human-routed lane goes to a
+**territory AE**, never an SDR — modeling the real customer, not a generic B2B org.
 
 **Tradeoff / honesty:** matching real people's companies to **Figma's real
 Salesforce** requires Figma's CRM, which an applicant can't have. So the CRM is a

@@ -4,7 +4,11 @@ This is the PLG -> enterprise expansion motion: match the commenter's company
 against Salesforce, then decide what the lead MEANS and WHO should act on it. An
 existing paid customer showing design-tool intent elsewhere is a churn/expansion
 signal for the Account Owner (AE), not a cold DM to the commenter; a company with
-no account is a net-new lead for an SDR.
+no account is a net-new lead for the territory AE.
+
+Routing reflects Figma's ACTUAL org: Figma runs no SDR function (source: CRO Shaunt
+Voskanian, 20Sales podcast, Mar 2026) -- AEs own the full motion including net-new
+and expansion. So every human-routed lane here goes to an AE, never an SDR.
 
 Demo mode reads a synthetic, clearly-labeled accounts fixture so the stage runs
 zero-cred and is testable. Live mode would query the Salesforce API
@@ -89,7 +93,7 @@ def route(intent_type: IntentType | None, account: Account | None, company: str 
         return Routing(
             signal_type=SignalType.enrich,
             priority=3,
-            recipient="SDR (enrich first)",
+            recipient="Territory AE (enrich first)",
             rationale="no company captured on the profile; enrich before routing",
         )
 
@@ -125,13 +129,13 @@ def route(intent_type: IntentType | None, account: Account | None, company: str 
         return Routing(
             signal_type=SignalType.net_new,
             priority=1,
-            recipient=f"SDR via {account.account_owner or 'prospecting'}",
+            recipient=f"Territory AE: {account.account_owner or 'prospecting'}",
             rationale=f"known account '{account.account_name}', not yet a customer -- net-new",
         )
 
     return Routing(
         signal_type=SignalType.net_new,
         priority=2,
-        recipient="SDR (net-new)",
+        recipient="Territory AE (net-new)",
         rationale=f"no Salesforce account for '{company}' -- net-new company",
     )
