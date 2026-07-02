@@ -36,6 +36,10 @@ makes that safe.
   data (raw comments, hygiene flags, feedback) lives in gitignored files.
 - **Retention window: 30 days.** Raw scraped comment text (`comments-live.json`, hygiene
   queue) is purged after 30 days; only non-PII aggregates in the run log persist beyond that.
+- **System of record vs ephemeral.** Slack delivery is ephemeral; the **warehouse is the system
+  of record** for what the pipeline learned. Warehouse tables persist the *derived* records
+  (intent events, observations, outcomes, de-identified trends); raw comment text still obeys the
+  30-day window above and is not warehoused.
 
 ## Source risk & kill-switch
 

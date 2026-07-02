@@ -391,6 +391,26 @@ larger in value** — it's where a warm, AE-owned, higher-ACV, higher-win-rate s
 against 139% NDR. That's the honest headline: *one automated channel, and the expansion half does
 most of the work.* All rates are illustrative; week one you replace them with Figma's real funnel.
 
+### 4.11 Slack gets the lead, Snowflake gets the memory
+
+**Decision: the pipeline is a sensor; the warehouse is institutional memory.**
+
+Slack delivery is ephemeral. Everything a run *learns* is also written to the warehouse as
+five queryable, partitioned tables (`warehouse/`, best-effort sink — a warehouse failure never
+blocks Slack or fails the run): `external_intent_events` (gate-inherited — only verbatim-verified
+surfaced leads, so a hallucination is *unrepresentable* in the table), `contact_observations`
+(hygiene for all leads), `rep_outcomes` (adoption, keyed by `lead_id` not name), `run_telemetry`
+(signal-quality metadata you must join before trusting any run), and `displaced_tool_trends` (a
+**de-identified** aggregate over every classified post incl. discards — monetize the exhaust).
+
+Cross-run intelligence then accrues in the warehouse via **dbt** (`dbt/`, run on warehouse
+cadence, never by the pipeline): `account_heat.sql` and `champion_departure.sql`. The only
+coupling back is a single optional snapshot — `accounts.py` reads `account_heat_snapshot.json` if
+it exists and lets a hot account nudge priority by at most one tier; absent, behavior is
+identical. That's what turns a scraper into a **GTM data asset** other teams join. See
+`WAREHOUSE.md` for the table docs and the three queries the layer exists for (attribution,
+champion departure, recipe precision).
+
 ---
 
 ## 5. Compliance posture (a feature, not an afterthought)

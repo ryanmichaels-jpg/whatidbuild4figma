@@ -94,3 +94,18 @@ a small two-column "pipeline" card: **Net-new ~$225K · Expansion ~$540K (illust
 real CRM)** so the value story is on the board. The point the visual makes: fewer expansion leads,
 but they're where the money is — the same reason routing is expansion-first.
 
+
+---
+
+## Warehouse layer — Snowflake band + read-back arrow
+
+**Add a horizontal band across the bottom, under Slack**, titled **"Snowflake — institutional
+memory (Slack gets the lead, Snowflake gets the memory)."** From the Monitor/Route region draw
+five short arrows down into five small table cards: `external_intent_events` (tag it "gate-
+inherited"), `contact_observations`, `rep_outcomes`, `run_telemetry`, `displaced_tool_trends`
+(tag it "de-identified"). Put a **best-effort** badge on the band's inbound arrow: *"sink failure
+never blocks Slack."* To the side, a **dbt** box (`account_heat`, `champion_departure`) with a
+note "runs in warehouse, not the pipeline," and a single **dashed arrow curving back UP** from
+`account_heat` into the Route/intercept node labeled *"read-back: hot account → +1 priority
+(optional; absent = no-op)."* That dashed arrow is the whole story of the layer: the sensor feeds
+the memory, and the memory feeds *timing* back — without ever touching a gate or a decision.
