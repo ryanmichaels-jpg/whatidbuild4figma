@@ -1,0 +1,20 @@
+name: figma_intent
+version: "1.0"
+config-version: 2
+profile: figma_intent
+
+model-paths: ["models"]
+
+# These models run in the WAREHOUSE on warehouse cadence (not in the Python pipeline).
+# The pipeline only READS their output (e.g. account_heat_snapshot.json) back in.
+models:
+  figma_intent:
+    +materialized: table
+
+# Weights live here so RevOps can tune the heat model without touching Python.
+vars:
+  decay_half_life_days: 14      # a signal loses half its weight every N days
+  diversity_weight: 0.25        # bonus per distinct Figma surface beyond the first
+  seniority_weight_senior: 1.5  # head/vp/chief/director/principal/staff/lead
+  seniority_weight_ic: 1.0
+  churn_paid_only: true         # champion_departure only flags departures from paid accounts

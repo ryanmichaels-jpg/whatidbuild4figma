@@ -71,6 +71,22 @@ def test_intercept_cools_curious_heavy_user_to_nurture():
     assert "nurture" in r.rationale
 
 
+def test_account_heat_readback_escalates_when_present(tmp_path, monkeypatch):
+    import json
+    import accounts
+    # no snapshot -> no heat effect (identical to a pipeline with no warehouse)
+    monkeypatch.setattr(accounts, "_HEAT_SNAP", str(tmp_path / "absent.json"))
+    r0 = accounts.route(IntentType.evaluating, accounts.match_account_demo("Acme"), "Acme")
+    assert "account_heat" not in r0.rationale
+    base_priority = r0.priority
+    # snapshot present + hot -> priority escalates by one tier, bounded
+    snap = tmp_path / "heat.json"
+    snap.write_text(json.dumps({"Acme": 9.0}))
+    monkeypatch.setattr(accounts, "_HEAT_SNAP", str(snap))
+    r1 = accounts.route(IntentType.evaluating, accounts.match_account_demo("Acme"), "Acme")
+    assert r1.priority == max(0, base_priority - 1) and "account_heat" in r1.rationale
+
+
 def test_lane_splits_expansion_vs_net_new():
     from accounts import lane
     from schema import SignalType

@@ -34,6 +34,19 @@ from schema import Account, IntentType, PlanTier, ProductSignals, Routing, Signa
 
 _DATA = os.path.join(os.path.dirname(__file__), "data", "sfdc_accounts.json")
 
+# dbt read-back: a snapshot of the warehouse account_heat.sql model, if the warehouse produced
+# one. Optional by design -- absent file means identical behavior to a pipeline with no warehouse.
+_HEAT_SNAP = os.path.join(os.path.dirname(__file__), "data", "warehouse", "account_heat_snapshot.json")
+_HEAT_ESCALATE = float(os.environ.get("ACCOUNT_HEAT_ESCALATE", "5.0"))
+
+
+def _account_heat() -> dict:
+    try:
+        with open(_HEAT_SNAP, "r", encoding="utf-8") as fh:
+            return {_normalize(k): v for k, v in json.load(fh).items()}
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
 _LEGAL_SUFFIXES = {"inc", "inc.", "llc", "ltd", "ltd.", "co", "co.", "corp", "corp.", "gmbh", "plc", "the"}
 
 
@@ -176,6 +189,16 @@ def _apply_intercept(base: Routing, intent_type: IntentType | None, account: Acc
         base.priority = 3
         base.rationale += " | intercept: curious but heavy usage -- nurture/insight, not a call"
     # active_need + no product footprint -> standard net-new (base already correct)
+
+    # dbt read-back (the dashed arrow): a hot account from account_heat.sql escalates priority by
+    # at most ONE tier. Missing snapshot -> no effect, identical to a pipeline with no warehouse.
+    if account and account.matched:
+        heat = _account_heat().get(_normalize(account.account_name or account.query_company or ""))
+        if heat is not None and heat >= _HEAT_ESCALATE:
+            base.priority = max(0, base.priority - 1)
+            base.rationale += f" | account_heat {heat:.1f} (dbt read-back) -- escalated"
+            if base.why_now:
+                base.why_now += f"; account heat {heat:.1f}"
     return base
 
 
