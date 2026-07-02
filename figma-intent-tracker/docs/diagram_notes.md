@@ -58,3 +58,14 @@ above precision; and (2) a dashed arrow from Monitor to a small store box **"gol
 *backward* — the feedback loop. It throws away nothing; it teaches the system what to throw
 away next time.
 
+---
+
+## Change 5 — Governance & rollout (a framing card, not a pipeline box)
+
+**Not a node — a card in the corner** titled **"Rollout & Governance."** Three tight lines:
+*"Pilot 1 AE pod (5 reps, 2 wks) → gate: action ≥50% & precision ≥85% → expand pod-by-pod."*
+Below it a tiny owner strip: **SalesOps** (routing) · **Enablement** (rep feedback) · **GTM
+Systems** (secrets/infra) · **Me** (engine). And a red **kill-switch** tag: *"revoke
+APIFY_TOKEN → pipeline no-ops."* This card tells the interviewer you thought about production
+adoption, not just the code. See `GOVERNANCE.md`.
+
