@@ -19,11 +19,33 @@ accrues, owned by RevOps/data.
   paid customer. Emits both sides of the event: the old account as a **churn_risk** (a champion
   just left) and the new company as a **warm_door** (a known advocate just landed there).
 
-## Sources
+## Sources & running it
 
-`external_intent_events` / `contact_observations` / `rep_outcomes` come from this pipeline's
-warehouse writes. `salesforce.contacts` / `salesforce.accounts` are the standard Salesforce syncs
-(Fivetran/native). Wire them in `sources.yml` when deploying.
+Sources are declared in `models/sources.yml` (that's the "wiring"):
+
+- **`pipeline`** — the five tables the sink lands (`external_intent_events`, `contact_observations`,
+  `rep_outcomes`, `run_telemetry`, `displaced_tool_trends`). Because they're *landed* (via
+  `COPY INTO`), the models read them with `source()`, not `ref()`. Includes a freshness check
+  (a stale pipeline is a monitoring signal) and column tests (lead_id not-null, confidence in
+  [0,1], hygiene flag accepted-values).
+- **`salesforce`** — `contacts` / `accounts` / `opportunities` synced by Fivetran/native.
+
+Database/schema names come from env vars (`PIPELINE_DB`, `PIPELINE_SCHEMA`, `FIVETRAN_DB`,
+`SALESFORCE_SCHEMA`) so nothing warehouse-specific is hardcoded.
+
+**To run against a real warehouse:**
+```bash
+cp dbt/profiles.example.yml ~/.dbt/profiles.yml     # then fill in / export the env vars
+export PIPELINE_DB=ANALYTICS PIPELINE_SCHEMA=PIPELINE SNOWFLAKE_ACCOUNT=... SNOWFLAKE_USER=...
+cd dbt
+dbt deps                 # installs dbt_utils (see packages.yml)
+dbt source freshness     # is the pipeline landing data on schedule?
+dbt build                # runs models + source/column tests
+```
+Export the `account_heat` snapshot the pipeline reads back:
+```bash
+dbt run-operation export_account_heat   # or a scheduled UNLOAD -> data/warehouse/account_heat_snapshot.json
+```
 
 ## Read-back contract
 

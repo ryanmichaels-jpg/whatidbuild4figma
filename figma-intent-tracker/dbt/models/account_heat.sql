@@ -12,7 +12,7 @@ with events as (
         figma_surface,
         lead_id,
         datediff('day', run_date::date, current_date())                  as age_days
-    from {{ ref('external_intent_events') }}
+    from {{ source('pipeline', 'external_intent_events') }}
 
 ),
 
@@ -25,7 +25,7 @@ titles as (
             when lower(headline) ~ '(head|vp|chief|director|principal|staff|lead)' then 1
             else 0
         end) as has_senior
-    from {{ ref('contact_observations') }}
+    from {{ source('pipeline', 'contact_observations') }}
     group by 1
 ),
 

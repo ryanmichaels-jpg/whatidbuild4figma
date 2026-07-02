@@ -1,0 +1,5 @@
+# dbt package deps. Run `dbt deps` after cloning. dbt_utils powers the accepted_range test
+# on external_intent_events.confidence in models/sources.yml.
+packages:
+  - package: dbt-labs/dbt_utils
+    version: [">=1.1.0", "<2.0.0"]

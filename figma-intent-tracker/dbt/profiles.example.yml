@@ -1,0 +1,17 @@
+# Copy to ~/.dbt/profiles.yml (or set DBT_PROFILES_DIR to this dir) and fill in credentials.
+# Snowflake example -- swap `type` for bigquery/redshift/databricks if your warehouse differs.
+# Everything sensitive is read from env vars so no secret is committed.
+
+figma_intent:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      authenticator: externalbrowser        # or set password / private_key_path
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'TRANSFORMER') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'TRANSFORMING') }}"
+      database: "{{ env_var('PIPELINE_DB', 'ANALYTICS') }}"
+      schema: "{{ env_var('DBT_SCHEMA', 'ANALYTICS') }}"   # where account_heat / champion_departure land
+      threads: 4

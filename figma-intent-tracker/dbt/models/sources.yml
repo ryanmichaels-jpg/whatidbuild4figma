@@ -1,0 +1,50 @@
+version: 2
+
+sources:
+  # Tables landed by the intent pipeline's warehouse sink (warehouse/__init__.py -> COPY INTO).
+  # These are RAW landed data, so the models read them via source(), not ref().
+  - name: pipeline
+    description: "Intent-pipeline warehouse tables, partitioned by run_date (dt=<date>)."
+    database: "{{ env_var('PIPELINE_DB', 'ANALYTICS') }}"
+    schema: "{{ env_var('PIPELINE_SCHEMA', 'PIPELINE') }}"
+    loaded_at_field: "run_date::timestamp"
+    freshness:                       # a stale pipeline is a monitoring signal
+      warn_after: {count: 2, period: day}
+      error_after: {count: 7, period: day}
+    tables:
+      - name: external_intent_events
+        description: "Gate-inherited surfaced leads (verbatim-verified quote). Identified."
+        columns:
+          - name: lead_id
+            tests: [not_null]
+          - name: confidence
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 1
+      - name: contact_observations
+        description: "CRM-hygiene diff for all leads (incl. non-ICP)."
+        columns:
+          - name: flag
+            tests:
+              - accepted_values:
+                  values: ["job_change", "title_stale", "no_record", "current"]
+      - name: rep_outcomes
+        description: "Adoption feedback keyed by lead_id (no name)."
+      - name: run_telemetry
+        description: "One flattened metrics row per run. Signal-quality metadata."
+      - name: displaced_tool_trends
+        description: "De-identified aggregate over all classified posts incl. discards."
+
+  # Salesforce objects synced to the warehouse (Fivetran / native connector).
+  - name: salesforce
+    description: "Salesforce system-of-record objects synced to the warehouse."
+    database: "{{ env_var('FIVETRAN_DB', 'FIVETRAN') }}"
+    schema: "{{ env_var('SALESFORCE_SCHEMA', 'SALESFORCE') }}"
+    tables:
+      - name: contacts
+        description: "SFDC Contact. account_name links to accounts; used for champion_departure."
+      - name: accounts
+        description: "SFDC Account (is_customer, plan) -- the paid-customer check."
+      - name: opportunities
+        description: "SFDC Opportunity (account_name, amount, stage_name, created_date) for attribution."

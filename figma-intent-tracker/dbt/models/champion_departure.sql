@@ -14,7 +14,7 @@ with departures as (
         name,
         company               as new_company,   -- scraped: where they are NOW
         run_date
-    from {{ ref('contact_observations') }}
+    from {{ source('pipeline', 'contact_observations') }}
     where flag = 'job_change'
       and sfdc_contact_id is not null
 
