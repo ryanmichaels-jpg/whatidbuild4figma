@@ -69,3 +69,16 @@ Systems** (secrets/infra) · **Me** (engine). And a red **kill-switch** tag: *"r
 APIFY_TOKEN → pipeline no-ops."* This card tells the interviewer you thought about production
 adoption, not just the code. See `GOVERNANCE.md`.
 
+---
+
+## Change 6 — Recipes (pluggable signal inputs)
+
+**Reshape the Discover node's input.** Instead of one map feeding Discover, draw a small stack
+of **recipe cards** ("base_displacement ✓ enabled", "config2026 ⚪ disabled", "+ your signal")
+feeding INTO Discover, with a validator gate between them labeled **"schema check — fail loud."**
+The critical visual: draw a **hard wall** between the recipes and the trust-gate nodes (ICP /
+Evidence / Verify / Richness) labeled *"config can't cross — gates are inherited, not
+overridable."* Add a "by recipe" tag on the Monitor node (metrics segment per recipe). The story
+this tells: anyone can add a signal (a card), nobody can weaken the gates (the wall). It throws
+away nothing new; it makes the whole pipeline *reusable* for any signal.
+

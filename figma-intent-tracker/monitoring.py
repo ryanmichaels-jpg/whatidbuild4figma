@@ -29,6 +29,9 @@ def compute(leads: list[Lead], post_results: dict[str, PostClassification], gold
     # CRM hygiene byproduct (deterministic, never affects routing) -- counts only, no PII
     hyg = Counter(x.hygiene.status.value for x in leads if x.hygiene)
 
+    # segment by the discovery recipe that surfaced each lead (a bad recipe is visible/revertable)
+    by_recipe = Counter((x.recipe or "base_displacement") for x in leads)
+
     m = {
         "posts_total": len(post_results),
         "posts_qualified": sum(1 for pc in post_results.values() if pc.qualifies),
@@ -41,6 +44,7 @@ def compute(leads: list[Lead], post_results: dict[str, PostClassification], gold
         "gate_hallucinations_caught": hallucinations,
         "verifier_downgrades": verifier_downgrades,
         "hygiene": {k: hyg.get(k, 0) for k in ("job_change", "title_stale", "no_record", "current")},
+        "by_recipe": dict(by_recipe),
     }
 
     if golden:

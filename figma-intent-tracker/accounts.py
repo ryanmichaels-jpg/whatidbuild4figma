@@ -29,6 +29,7 @@ import os
 import re
 from functools import lru_cache
 
+import recipes as recipes_mod
 from schema import Account, IntentType, PlanTier, ProductSignals, Routing, SignalType
 
 _DATA = os.path.join(os.path.dirname(__file__), "data", "sfdc_accounts.json")
@@ -97,8 +98,9 @@ def match_account(company: str | None, mode: str = "demo") -> Account | None:
 _STRONG_INTENT = {IntentType.active_need, IntentType.evaluating}
 
 
-def route(intent_type: IntentType | None, account: Account | None, company: str | None) -> Routing:
-    """Expansion-first routing, then a stack-aware INTERCEPT pass.
+def route(intent_type: IntentType | None, account: Account | None, company: str | None,
+          recipe_surface: str | None = None) -> Routing:
+    """Expansion-first routing, then a stack-aware INTERCEPT pass, then any recipe override.
 
     The base route decides signal/priority/recipient from the CRM match. The intercept pass
     then joins the EXTERNAL intent signal with INTERNAL product usage -- the exact join Figma
@@ -107,7 +109,24 @@ def route(intent_type: IntentType | None, account: Account | None, company: str 
     heavy-usage account into a nurture, not a call. Every lead gets a one-line "why now".
     """
     base = _base_route(intent_type, account, company)
-    return _apply_intercept(base, intent_type, account)
+    routed = _apply_intercept(base, intent_type, account)
+    return _apply_recipe_override(routed, recipe_surface, account)
+
+
+def _apply_recipe_override(routing: Routing, recipe_surface: str | None, account: Account | None) -> Routing:
+    """Let a recipe re-aim routing for its own surface (e.g. GEN_PLUGINS/AGENT -> UPSELL for
+    existing customers). Only re-aims EXISTING-customer leads; never overrides the trust gates."""
+    if not (account and account.matched and account.is_customer):
+        return routing
+    ov = recipes_mod.routing_override(recipe_surface)
+    if ov:
+        try:
+            routing.signal_type = SignalType(ov)
+        except ValueError:
+            return routing
+        routing.recipient = f"AE: {account.account_owner or 'Account Owner'}"
+        routing.rationale += f" | recipe override ({recipe_surface} -> {ov})"
+    return routing
 
 
 def _why_now(intent_type: IntentType | None, account: Account | None) -> str:

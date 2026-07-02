@@ -1,5 +1,10 @@
 {
-  "_comment": "Config-2026 displacement map. Strategy: find posts where someone TEACHES a SPECIFIC tool Figma now displaces, using an engagement hook ('comment and I'll send the guide'). The commenters asking for that tool's guide are doing -- the hard way, in an external tool -- exactly what a new Figma feature now does natively, so they are in-market for Figma. Each query names the displaced tool + a guide/tutorial asset + a comment/DM bait modifier. `tool_keywords` are the clean names used to confirm a discovered post actually mentions a displaced tool (whole-word match).",
+  "name": "base_displacement",
+  "version": "1.0",
+  "enabled": true,
+  "figma_surfaces": ["motion", "buzz", "design", "dev_mode", "draw", "sites", "slides", "make", "figjam"],
+  "routing_overrides": {},
+  "_comment": "Config-2026 base displacement recipe (was data/displacement_map.json). Strategy: find posts where someone TEACHES a SPECIFIC tool Figma now displaces, using an engagement hook ('comment and I'll send the guide'). The commenters asking for that tool's guide are doing -- the hard way, in an external tool -- exactly what a new Figma feature now does natively, so they are in-market for Figma. `tool_keywords` are the clean names used to confirm a discovered post actually mentions a displaced tool (whole-word match).",
   "surfaces": {
     "motion": {
       "figma_feature": "Figma Motion -- native keyframe animations & micro-interactions, AI-generated motion, dev-ready export",

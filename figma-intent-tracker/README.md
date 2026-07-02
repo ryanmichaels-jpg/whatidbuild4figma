@@ -340,6 +340,28 @@ gitignored; the run log carries only the aggregates — no PII.)
   mode** (`MODE=live` + keys) runs the real thing. The same code path; only the
   connectors differ.
 
+### 4.9 Recipes — signals as pluggable config (distributed adoption)
+
+**Decision: a new intent signal is a reviewed config PR, not an engineering deploy.**
+
+The discovery maps moved from a single `displacement_map.json` into `recipes/` — each recipe
+(`base_displacement.json`, `config2026_displacement.json`) is a JSON file declaring what to
+search (`tool_keywords`, `queries`) and, optionally, how to route what it finds
+(`routing_overrides`, e.g. Config-2026's `GEN_PLUGINS`/`AGENT` → `upsell` because those posters
+are almost always existing customers). Discovery iterates every **enabled** recipe; metrics
+segment **by recipe**, so a bad recipe is visible and revertable.
+
+`recipes.py` validates each recipe at startup against `recipes/schema.json` (hand-rolled,
+stdlib-only — no new dep) and **fails loud** on a bad one, naming the file. The crucial property,
+enforced in code: a recipe is validated with `additionalProperties:false` and the engine only
+ever sees a **normalized** form (`name/enabled/figma_surfaces/routing_overrides/signals`) — so
+**a recipe can shape discovery and routing but can never touch the trust gates** (ICP filter,
+verbatim gate, verify, richness). They're inherited by every recipe and cannot be bypassed by
+config. That's the reusable pattern the JD asks for: a GTM team ships a signal via PR (SalesOps
+reviews), inherits the whole trust layer for free, and *cannot* lower the quality bar. See
+`docs/ADDING_A_SIGNAL.md`. (The Config-2026 recipe ships `enabled: false` until ~10 golden posts
+per surface exist, per its own guidance.)
+
 ---
 
 ## 5. Compliance posture (a feature, not an afterthought)

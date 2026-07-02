@@ -106,7 +106,8 @@ _GOLDEN = os.path.join(os.path.dirname(__file__), "data", "golden.json")
 
 
 def process(commenter: Commenter, post_type: PostType | None, mode: str,
-            figma_surface: FigmaSurface | None = None) -> Lead:
+            figma_surface: FigmaSurface | None = None,
+            recipe: str | None = None, recipe_surface: str | None = None) -> Lead:
     """Run one commenter through filter -> (classify) -> gate -> verify -> account match + route."""
     title = classify_title(commenter.headline)
     cls = None
@@ -170,13 +171,14 @@ def process(commenter: Commenter, post_type: PostType | None, mode: str,
         intent = cls.intent_type if cls else None
         account = accounts_mod.match_account(commenter.company, mode)
         lead.account = account
-        lead.routing = accounts_mod.route(intent, account, commenter.company)
+        lead.routing = accounts_mod.route(intent, account, commenter.company, recipe_surface)
 
     # CRM hygiene: a PARALLEL, deterministic byproduct of the scrape -- runs on every lead,
     # NEVER affects decision/routing above. Just attaches a stale-record flag for a rep.
     lead.hygiene = hygiene_mod.check(commenter, mode)
 
     lead.figma_surface = figma_surface  # for per-surface adoption/precision metrics
+    lead.recipe = recipe                # which discovery recipe surfaced this lead (segmentation)
     return lead
 
 
@@ -235,8 +237,10 @@ def run_with_posts(mode: str | None = None):
         pc = post_results[post["url"]]
         if not pc.qualifies:
             continue  # off_topic / showcase -> never scrape its comments
+        recipe_surface = (post.get("surfaces") or [None])[0]  # recipe's own surface label
         for commenter in extract_mod.extract_for_post(post, mode):
-            leads.append(process(commenter, pc.post_type, mode, pc.figma_surface))
+            leads.append(process(commenter, pc.post_type, mode, pc.figma_surface,
+                                 recipe=post.get("recipe"), recipe_surface=recipe_surface))
     return leads, post_results
 
 

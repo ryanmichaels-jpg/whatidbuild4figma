@@ -1,0 +1,20 @@
+{
+  "_comment": "Envelope schema for a discovery 'signal recipe'. Validated at startup by recipes.py (hand-rolled, stdlib-only -- no jsonschema dep). additionalProperties:false is the GATE-SAFETY boundary: a recipe may ONLY declare discovery + routing config. It cannot add a key that reaches the trust gates (ICP filter, verbatim gate, verify, richness) -- those are inherited by every recipe and enforced in code. A recipe must carry exactly one body: 'surfaces' (object, base-map shape) OR 'features' (array, config-2026 shape).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "version", "enabled", "figma_surfaces"],
+  "one_of_body": ["surfaces", "features"],
+  "properties": {
+    "name": {"type": "string"},
+    "version": {"type": "string"},
+    "enabled": {"type": "boolean"},
+    "figma_surfaces": {"type": "array"},
+    "routing_overrides": {"type": "object"},
+    "surfaces": {"type": "object"},
+    "features": {"type": "array"},
+    "_comment": {"type": "string"},
+    "_meta": {"type": "object"},
+    "lead_magnet_playbook": {"type": "object"},
+    "pipeline_changes": {"type": "object"}
+  }
+}

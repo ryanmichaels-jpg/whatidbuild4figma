@@ -46,6 +46,10 @@ def render(leads: list[Lead], mode: str, post_results: dict | None = None) -> st
     hyg = Counter(x.hygiene.status.value for x in leads if x.hygiene)
     hyg_stale = hyg.get("job_change", 0) + hyg.get("title_stale", 0)
 
+    # segment leads by the discovery recipe that surfaced them
+    by_recipe = Counter((x.recipe or "base_displacement") for x in leads)
+    recipe_html = "".join(_bar(k, v, len(leads) or 1) for k, v in sorted(by_recipe.items())) or "<em>none</em>"
+
     personas = Counter(
         x.title.persona.value for x in leads if x.title.persona is not None
     )
@@ -182,6 +186,9 @@ Praise-mislabels downgraded by verification: <b>{downgrades}</b></p>
 <p>Stale records flagged: <b>{hyg_stale}</b> (job change: {hyg.get('job_change', 0)}, title mismatch: {hyg.get('title_stale', 0)})<br>
 Not in CRM (net-new contacts): <b>{hyg.get('no_record', 0)}</b> &middot; Confirmed current: <b>{hyg.get('current', 0)}</b><br>
 Flags confirmed by a human: <b>__</b> (manual review of data/hygiene_queue.jsonl)</p>
+<h2>Signal recipes</h2>
+<p class="meta">Leads by the discovery recipe that surfaced them. New signals ship as recipe PRs (recipes/*.json) reviewed by SalesOps; the trust gates are inherited and cannot be bypassed by config. A bad recipe shows up here and is revertable.</p>{recipe_html}
+
 <h2>Persona breakdown (ICP tiers)</h2>{persona_html}
 <h2>Intent breakdown</h2>{intent_html}
 <h2>Quality vs golden set</h2>{eval_html}

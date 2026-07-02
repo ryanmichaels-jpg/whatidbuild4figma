@@ -102,6 +102,17 @@ generic scrape-and-spam pipeline. Hold these invariants:
     and `pytest` must run with no keys. If you change decision logic, update the
     golden set and keep `accuracy == 1.0` on it (or justify the change).
 
+11. **Signals are pluggable config (recipes), and config CANNOT bypass the gates.**
+    Discovery signals live in `recipes/*.json`, loaded/validated by `recipes.py` at startup
+    (fail-loud, names the file). Discovery + Google-spec + tool-matching iterate ENABLED
+    recipes only. A recipe may declare discovery (`surfaces`/`features`, `tool_keywords`,
+    `queries`) and routing (`routing_overrides`) -- nothing else: it is validated with
+    `additionalProperties:false`, and the engine only sees the NORMALIZED form
+    (`name/enabled/figma_surfaces/routing_overrides/signals`), so doc sections never reach
+    engine code. The trust gates (0/1/1a/1b/2) are inherited by every recipe and can never be
+    altered by config. Never add a code path that lets a recipe touch a gate. Metrics segment
+    by recipe so a bad recipe is visible and revertable. See docs/ADDING_A_SIGNAL.md.
+
 Pipeline order: DISCOVER -> EXTRACT -> FILTER -> CLASSIFY -> GATE -> NOTIFY -> DASHBOARD.
 Files: schema.py (contract), titles.py (filter), classify.py (LLM), gate.py (trust gate),
 discover.py / extract.py (Apify), notify.py (Slack), dashboard.py, pipeline.py (orchestrator).

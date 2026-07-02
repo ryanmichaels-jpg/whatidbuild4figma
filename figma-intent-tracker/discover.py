@@ -19,14 +19,13 @@ from collections import Counter
 import os
 from typing import Optional
 
+import recipes as recipes_mod
 from apify_run import run_actor
 
 # Discovery queries come from the Config-2026 displacement map: for each Figma
 # surface, hunt engagement-bait posts about the COMPETITOR tool/workflow Figma now
 # displaces (After Effects -> Figma Motion, Webflow -> Sites, design-to-code ->
 # Code Layers, etc.). The commenters on those posts are in-market for what Figma does.
-_DISP = os.path.join(os.path.dirname(__file__), "data", "displacement_map.json")
-
 _FALLBACK_QUERIES = [
     "comment and I'll send you the guide design UI",
     "After Effects alternative UI animation comment",
@@ -36,31 +35,22 @@ _FALLBACK_QUERIES = [
 ]
 
 
-def _load_displacement() -> dict:
-    try:
-        with open(_DISP, "r", encoding="utf-8") as fh:
-            return json.load(fh)["surfaces"]
-    except (FileNotFoundError, KeyError, json.JSONDecodeError):
-        return {}
-
-
 def _displacement_queries() -> list[str]:
-    qs = [q for s in _load_displacement().values() for q in s.get("queries", [])]
+    # queries come from every ENABLED recipe (recipes/*.json), unioned
+    qs = [q for q, _recipe, _surface in recipes_mod.discovery_queries()]
     return qs or _FALLBACK_QUERIES
 
 
-# name -> surface, for every displaced tool in the map (lowercased) -- used to confirm
-# a discovered post is actually ABOUT a tool Figma displaces (precision over loose search).
+# tool (lowercased) -> figma surface, across enabled recipes -- used to confirm a discovered
+# post is actually ABOUT a tool Figma displaces (precision over loose search).
 def _displaced_tools() -> dict:
-    out = {}
-    for surface, s in _load_displacement().items():
-        for tool in s.get("tool_keywords", []):
-            out[tool.lower()] = surface
-    return out
+    return {tool: surface for tool, (_recipe, surface) in recipes_mod.displaced_tools().items()}
 
 
 DISCOVERY_QUERIES = _displacement_queries()
 DISPLACED_TOOLS = _displaced_tools()
+# tool -> recipe name, to attribute a discovered post to the recipe that found it (segmentation)
+TOOL_RECIPE = {tool: recipe for tool, (recipe, _surface) in recipes_mod.displaced_tools().items()}
 
 
 def matched_displaced_tools(text: str) -> list[str]:
@@ -160,6 +150,7 @@ def discover_live(
             "bait_score": bait_score(content),
             "matched_tools": matched,  # Figma-displaced tools named in the post
             "surfaces": sorted({DISPLACED_TOOLS[t] for t in matched}),
+            "recipe": TOOL_RECIPE.get(matched[0]) if matched else None,
         }
 
     posts = list(by_url.values())
@@ -241,10 +232,9 @@ GOOGLE_ACTOR = os.environ.get("GOOGLE_SEARCH_ACTOR", "apify~google-search-scrape
 
 def _google_query_specs() -> list[tuple]:
     specs = []
-    for surface, s in _load_displacement().items():
-        for tool in s.get("tool_keywords", []):
-            q = f'site:linkedin.com/posts "{tool}" ("comment" OR "I\'ll send" OR "free guide")'
-            specs.append((q, tool, surface))
+    for tool, (_recipe, surface) in recipes_mod.displaced_tools().items():
+        q = f'site:linkedin.com/posts "{tool}" ("comment" OR "I\'ll send" OR "free guide")'
+        specs.append((q, tool, surface))
     return specs
 
 
@@ -273,6 +263,7 @@ def discover_google(limit: int = 10) -> list[dict]:
                 "bait_score": bait_score(snippet),
                 "matched_tools": [tool] if tool else matched_displaced_tools(snippet),
                 "surfaces": [surface] if surface else [], "source": "google",
+                "recipe": TOOL_RECIPE.get(tool) if tool else None,
             }
     return list(by_url.values())
 

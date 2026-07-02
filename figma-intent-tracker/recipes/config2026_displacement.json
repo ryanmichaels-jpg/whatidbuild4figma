@@ -1,0 +1,406 @@
+{
+  "name": "config2026",
+  "version": "config-2026.1",
+  "enabled": false,
+  "figma_surfaces": [
+    "CODE_LAYERS",
+    "MOTION",
+    "SHADERS",
+    "GEN_PLUGINS",
+    "WEAVE",
+    "AGENT"
+  ],
+  "routing_overrides": {
+    "GEN_PLUGINS": "upsell",
+    "AGENT": "upsell"
+  },
+  "_meta": {
+    "version": "config-2026.1",
+    "purpose": "Extension of displacement_map.json for Config 2026 feature announcements. Same principle: search what the feature DISPLACES, not 'Figma'. Each entry adds a figma_surface value so posttype.py and the Haiku classifier can condition on it.",
+    "routing_note": "Config-2026 signals skew EXPANSION, not net-new. Posters complaining about AE->Lottie handoff often already have Figma seats -> SFDC match will hit -> route UPSELL/AE, not SDR. Expect the P0-P3 distribution to shift vs the base map.",
+    "highest_intent_pattern": "workflow_stitching -- a poster describing a multi-tool chain that one Config feature now collapses (e.g. 'Figma -> After Effects -> Lottie -> dev handoff'). Weight above single-tool mentions."
+  },
+  "features": [
+    {
+      "feature": "code_layers",
+      "figma_surface": "CODE_LAYERS",
+      "what_it_collapses": "Design exploration happening OUTSIDE Figma in code sandboxes and AI app builders, plus the design<->code round-trip.",
+      "displaced_tools": [
+        "v0",
+        "Lovable",
+        "Bolt.new",
+        "Framer code components",
+        "ProtoPie",
+        "Play app",
+        "CodeSandbox",
+        "CodePen",
+        "SwiftUI previews for design",
+        "Storybook (as design source of truth)"
+      ],
+      "or_queries": [
+        "\"prototyped it in v0\" design",
+        "\"skipped Figma\" prototype",
+        "\"design engineers\" prototype code",
+        "\"designers should learn\" React prototype",
+        "Storybook Figma \"out of sync\"",
+        "\"rebuild it in code\" design handoff",
+        "ProtoPie OR Framer \"high fidelity prototype\""
+      ],
+      "and_context_terms": [
+        "design",
+        "prototype",
+        "product",
+        "UI",
+        "handoff"
+      ],
+      "stop_list": [
+        "shipped to production",
+        "SaaS launch",
+        "indie hacker MRR",
+        "no-code founder"
+      ],
+      "false_positive_traps": "Founders using v0/Lovable/Bolt to SHIP apps (builder persona, not design workflow). Engineers with no designer in the loop. Keep the existing 'builder -> review only' title tier.",
+      "target_personas": [
+        "product designer",
+        "design engineer",
+        "staff designer",
+        "head of design",
+        "design systems lead",
+        "PM prototyping"
+      ],
+      "intent_examples": {
+        "active_need": "\"Our prototypes drift from production because design and code live in different tools\"",
+        "evaluating": "\"Testing whether v0 or Figma prototypes get better user-test signal\"",
+        "curious": "\"Should designers prototype in code now?\""
+      }
+    },
+    {
+      "feature": "figma_motion",
+      "figma_surface": "MOTION",
+      "what_it_collapses": "The UI-motion pipeline: animate in AE, export via Lottie/Bodymovin, spec easing curves in screenshots, beg devs to match them.",
+      "displaced_tools": [
+        "After Effects (UI motion)",
+        "Lottie",
+        "LottieFiles",
+        "Bodymovin",
+        "Jitter",
+        "Rive",
+        "Principle",
+        "Kite Compositor",
+        "ProtoPie (motion specs)"
+      ],
+      "or_queries": [
+        "\"After Effects\" \"Lottie\" handoff",
+        "Lottie JSON export animation UI",
+        "\"animation handoff\" developers",
+        "\"motion design\" spec easing developers",
+        "Jitter OR Rive UI animation",
+        "\"micro-interactions\" After Effects app",
+        "\"animate in\" \"rebuild in\" animation"
+      ],
+      "and_context_terms": [
+        "UI",
+        "app",
+        "product",
+        "design system",
+        "handoff",
+        "developer"
+      ],
+      "stop_list": [
+        "film",
+        "VFX",
+        "motion graphics reel",
+        "title sequence",
+        "music video",
+        "game engine",
+        "explainer video",
+        "social media video"
+      ],
+      "false_positive_traps": "AE is overwhelmingly film/social/VFX -- require a product-UI co-occurrence term or drop. Rive posts from game devs are off-ICP. Marketing-video Lottie use is weaker than product-UI Lottie use.",
+      "target_personas": [
+        "motion designer (product)",
+        "product designer",
+        "design systems lead",
+        "brand designer at software co",
+        "front-end/design engineer"
+      ],
+      "intent_examples": {
+        "active_need": "\"Spent two days getting the dev build to match my AE easing curves\"",
+        "evaluating": "\"Comparing Rive vs Lottie for our design system's motion tokens\"",
+        "curious": "\"Anyone found a good way to make motion part of a design system?\""
+      },
+      "expansion_note": "Motion-in-design-systems posts = strong expansion signal at existing Figma orgs (design systems imply org plan)."
+    },
+    {
+      "feature": "ai_shaders",
+      "figma_surface": "SHADERS",
+      "what_it_collapses": "Hiring a creative developer (or fighting WebGL/GLSL) to get gradients, grain, noise, and hero-section effects.",
+      "displaced_tools": [
+        "Unicorn Studio",
+        "Spline (effects)",
+        "Three.js / WebGL hero sections",
+        "Shadertoy",
+        "custom GLSL",
+        "mesh gradient plugins",
+        "creative-dev contractors"
+      ],
+      "or_queries": [
+        "\"Unicorn Studio\" website",
+        "WebGL \"hero section\" OR \"landing page\"",
+        "\"how did they make\" gradient OR grain effect",
+        "\"creative developer\" hire landing page",
+        "Spline 3D website effect",
+        "shader website design"
+      ],
+      "and_context_terms": [
+        "website",
+        "landing page",
+        "brand",
+        "design",
+        "hero"
+      ],
+      "stop_list": [
+        "Unity",
+        "Unreal",
+        "game dev",
+        "shader graph tutorial",
+        "generative art gallery",
+        "creative coding course"
+      ],
+      "false_positive_traps": "Game-dev shader content and pure generative artists. Require a web/product/brand context term. 'Hiring a creative developer' posts are ALSO a job-posting-intent style signal -- tag them.",
+      "target_personas": [
+        "brand designer",
+        "web designer",
+        "design lead",
+        "head of brand",
+        "marketing design manager"
+      ],
+      "intent_examples": {
+        "active_need": "\"Need this grain/gradient effect for our rebrand but nobody on the team writes WebGL\"",
+        "evaluating": "\"Trying Unicorn Studio for our new site's hero\"",
+        "curious": "\"These shader-y landing pages are everywhere -- how are people making them?\""
+      }
+    },
+    {
+      "feature": "generative_plugins",
+      "figma_surface": "GEN_PLUGINS",
+      "what_it_collapses": "Custom Figma plugin development -- the API learning curve, the contractor, the weekend project, the internal tooling backlog.",
+      "displaced_tools": [
+        "Figma plugin API dev",
+        "Scripter",
+        "internal design-ops scripts",
+        "plugin contractors",
+        "unmaintained community plugins"
+      ],
+      "or_queries": [
+        "\"built a Figma plugin\" team",
+        "\"is there a Figma plugin\" OR \"plugin that can\"",
+        "\"wish Figma had\" tool",
+        "design ops automation internal tool",
+        "\"plugin broke\" OR \"plugin abandoned\" Figma"
+      ],
+      "and_context_terms": [],
+      "stop_list": [
+        "plugin for sale",
+        "buy my plugin",
+        "plugin marketplace launch"
+      ],
+      "false_positive_traps": "Plugin AUTHORS marketing paid plugins (lead-magnet post_type already catches these -- they are competitors' engagers, not buyers). The buyers are in their comments.",
+      "target_personas": [
+        "design ops",
+        "design systems lead",
+        "staff designer",
+        "design tooling engineer"
+      ],
+      "intent_examples": {
+        "active_need": "\"The plugin we depend on hasn't been updated in a year\"",
+        "evaluating": "\"Scoping whether to build an internal plugin for our icon workflow\"",
+        "curious": "\"What plugins is everyone using for X?\""
+      },
+      "expansion_note": "Nearly all posters are EXISTING Figma users. This is a pure expansion/AI-tier signal -> route to AE. 'Is there a plugin that...' comments are the richest single-comment signal in this map: a stated need in the poster's own words."
+    },
+    {
+      "feature": "weave",
+      "figma_surface": "WEAVE",
+      "what_it_collapses": "Node-based generative pipelines stitched together outside design tools -- ComfyUI graphs, multi-model glue, prompt-and-pray asset production.",
+      "displaced_tools": [
+        "ComfyUI",
+        "Flora",
+        "Krea",
+        "Visual Electric",
+        "Runway (workflow use)",
+        "Midjourney + manual pipeline",
+        "Firefly workflows"
+      ],
+      "or_queries": [
+        "ComfyUI workflow brand OR design OR marketing",
+        "\"AI asset pipeline\" design team",
+        "Flora OR Krea OR \"Visual Electric\" workflow",
+        "\"multi-model\" workflow creative",
+        "Midjourney \"design system\" OR \"brand consistency\""
+      ],
+      "and_context_terms": [
+        "brand",
+        "design team",
+        "marketing",
+        "creative team",
+        "campaign"
+      ],
+      "stop_list": [
+        "stable diffusion tutorial",
+        "AI art community",
+        "checkpoint download",
+        "LoRA training",
+        "AI influencer"
+      ],
+      "false_positive_traps": "Hobbyist AI artists and ML engineers dominate ComfyUI content. Require team/brand/marketing context. The ICP title filter (titles.py) does heavy lifting here -- expect a low pass rate and that is fine, tokens were never spent.",
+      "target_personas": [
+        "brand designer",
+        "creative director",
+        "marketing designer",
+        "head of creative",
+        "content design lead"
+      ],
+      "intent_examples": {
+        "active_need": "\"Our ComfyUI setup only one person on the team can operate\"",
+        "evaluating": "\"Testing Krea vs Flora for campaign asset generation\"",
+        "curious": "\"How are creative teams actually operationalizing genAI?\""
+      }
+    },
+    {
+      "feature": "figma_agent",
+      "figma_surface": "AGENT",
+      "what_it_collapses": "Manual glue between design and the rest of the stack: Figma<->Notion/Jira/Slack sync, design-system doc chores, status-update busywork.",
+      "displaced_tools": [
+        "Zapier/Make syncs touching Figma",
+        "manual Notion/Confluence design docs",
+        "Jira<->design status updates",
+        "design-ops glue scripts",
+        "handoff status meetings"
+      ],
+      "or_queries": [
+        "Figma Notion \"out of sync\" OR \"keep in sync\"",
+        "design system documentation \"manual\" OR \"outdated\"",
+        "Jira design status update automation",
+        "\"design ops\" automation workflow",
+        "MCP design workflow agent"
+      ],
+      "and_context_terms": [
+        "design",
+        "team",
+        "workflow"
+      ],
+      "stop_list": [
+        "MCP server tutorial",
+        "agent framework benchmark",
+        "AI agent course"
+      ],
+      "false_positive_traps": "AI-tooling influencers posting about agents/MCP generically (the RPA-PM/growth-hacker crowd the base map already drops at titles.py). Require a design-workflow anchor.",
+      "target_personas": [
+        "design ops",
+        "design program manager",
+        "head of design",
+        "design systems lead",
+        "GTM/product ops at design-heavy org"
+      ],
+      "intent_examples": {
+        "active_need": "\"I spend Friday afternoons updating Notion to match what changed in Figma\"",
+        "evaluating": "\"Trying to connect our design files to Slack updates automatically\"",
+        "curious": "\"Are agents actually useful for design teams yet?\""
+      },
+      "expansion_note": "Agent/connector posts from existing customers = AI-tier upsell. Also a CHURN counter-signal: teams building their own glue may be under-adopted on Figma's native features."
+    }
+  ],
+  "lead_magnet_playbook": {
+    "principle": "On a lead-magnet post, the POST classifies the commenter, not the comment. The comment is just a trigger word ('MOTION', 'GUIDE', a fire emoji) -- a thin hand-raise your richness lever already promotes when post_type = lead_magnet. So spend effort finding the right BAIT POSTS; the commenters classify themselves for free.",
+    "bait_detector_queries": {
+      "note": "Combine one bait phrase with one displaced-tool term. Bait phrases are tool-agnostic and reusable.",
+      "bait_phrases": [
+        "\"comment\" \"I'll send\"",
+        "\"comment\" \"and I'll DM\"",
+        "\"drop a\" \"below\" \"send you\"",
+        "\"want the\" \"comment\"",
+        "\"type\" \"below and I'll\"",
+        "\"repost and comment\"",
+        "\"free guide\" \"comment\"",
+        "\"I spent\" \"hours building\" \"comment\""
+      ]
+    },
+    "magnet_archetypes_per_feature": {
+      "code_layers": {
+        "bait_to_find": [
+          "'my v0 prompt pack'",
+          "'Figma-to-React workflow guide'",
+          "'design engineer roadmap'",
+          "'how I prototype in code (full breakdown)'",
+          "'my Cursor/Claude setup for designers'"
+        ],
+        "why_commenter_qualifies": "A designer requesting a learn-to-code-for-prototyping guide is the code-layers pitch verbatim: they want code as a design material without leaving their canvas.",
+        "example_creator_niches": "design-engineer influencers, v0/Lovable tutorial creators, 'designers who code' educators"
+      },
+      "figma_motion": {
+        "bait_to_find": [
+          "'After Effects for UI designers' course",
+          "'my 50 micro-interaction presets'",
+          "'AE-to-Lottie handoff guide'",
+          "'Jitter/Rive template pack'",
+          "'motion design crash course for product designers'"
+        ],
+        "why_commenter_qualifies": "Product designers requesting AE/Lottie resources are announcing they lack motion capability in their current stack -- exactly what Motion removes the need to leave Figma for.",
+        "example_creator_niches": "UI-motion educators, LottieFiles ecosystem creators, Rive/Jitter template sellers"
+      },
+      "ai_shaders": {
+        "bait_to_find": [
+          "'how I built this hero effect -- comment for the breakdown'",
+          "'Unicorn Studio tutorial'",
+          "'my WebGL/Three.js starter for designers'",
+          "'gradient + grain asset pack'",
+          "'Spline course'"
+        ],
+        "why_commenter_qualifies": "Commenters are designers coveting effects they can't build without a creative developer. Shaders + agent = describe it, get it.",
+        "example_creator_niches": "creative developers showcasing hero sections, Unicorn Studio/Spline educators, award-site (Awwwards-style) breakdown creators"
+      },
+      "generative_plugins": {
+        "bait_to_find": [
+          "'my Figma plugin starter kit'",
+          "'top 20 Figma plugins' listicles",
+          "'how I built a plugin in a weekend'",
+          "'plugin dev tutorial'"
+        ],
+        "why_commenter_qualifies": "Two harvests: guide-requesters (want tooling they can't build) AND 'does one exist that does X?' repliers -- the single richest comment type in this map, a need stated verbatim.",
+        "example_creator_niches": "plugin authors marketing free plugins, design-ops educators, Figma community creators"
+      },
+      "weave": {
+        "bait_to_find": [
+          "'comment for my ComfyUI workflow file'",
+          "'my AI pipeline for brand assets'",
+          "'Krea/Flora workflow breakdown'",
+          "'Midjourney prompt system for design teams'"
+        ],
+        "why_commenter_qualifies": "Requesting a workflow FILE means they want a reusable multi-model pipeline -- Weave's exact pitch. Filter hard on title tier here; this niche is hobbyist-heavy.",
+        "example_creator_niches": "ComfyUI workflow sharers with design/brand framing, AI-for-creatives educators"
+      },
+      "figma_agent": {
+        "bait_to_find": [
+          "'my design-ops automation stack'",
+          "'Notion x Figma system -- comment for template'",
+          "'my MCP setup for designers'",
+          "'how I automated design system docs'"
+        ],
+        "why_commenter_qualifies": "Requesting automation templates = drowning in glue work the agent's skills/connectors replace natively.",
+        "example_creator_niches": "design-ops influencers, Notion-template creators in design niches, AI-workflow educators with design audiences"
+      }
+    },
+    "creator_watchlist_upgrade": {
+      "idea": "Serial magnet creators are renewable lead sources. After 2-3 runs, promote recurring authors into a watchlist (creators.json) polled every cron run BEFORE keyword search -- higher precision, lower Apify spend, and you catch every new post's commenters within 24h while the magnet is hot.",
+      "flywheel": "keyword search discovers creators -> watchlist monitors them -> run_log measures leads-per-creator -> prune creators whose commenters keep failing the ICP gate."
+    },
+    "trigger_word_handling": "When post_type = lead_magnet, extract the post's trigger word ('WEBSITE', 'MOTION') in code and match comments against it deterministically. Trigger-word-only comments skip the Haiku call entirely: intent = active_need is given by the post, evidence_quote = the trigger word, verbatim by construction. Tokens: zero."
+  },
+  "pipeline_changes": {
+    "posttype_axis_addition": "Add post_type values: displaced_tool_pain (complaint/friction), displaced_tool_showcase (demo of the displaced tool -- mine the COMMENTS, the poster is often a competitor-adjacent creator), workflow_stitching (multi-tool chain description -- highest intent, promote one confidence tier).",
+    "classifier_conditioning": "Pass figma_surface + feature name into the Haiku call so 'suggested angle' references the specific Config 2026 feature, not generic Figma.",
+    "routing": "Expect higher SFDC match rate than base map. Add rule: figma_surface in [GEN_PLUGINS, AGENT] + existing account -> UPSELL/AE by default.",
+    "monitoring": "Track precision per figma_surface in run_log.jsonl -- MOTION and SHADERS will need stop-list tuning fastest (AE/game-dev noise). Golden set: add ~10 labeled posts per surface before enabling."
+  }
+}
