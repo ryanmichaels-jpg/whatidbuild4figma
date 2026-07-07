@@ -39,6 +39,64 @@ match + routing), **Slack** (delivery), and structured, SQL-shaped records
 
 ---
 
+## 1b. Where this fits — the bigger GTM map
+
+![AI Sales Engineering @ Figma — the full map](docs/img/gtm-map.png)
+
+This repo is a working slice of the one-page map above: the batch engine, the trust
+gates, and the evals rail, pointed at one external signal (LinkedIn intent). The map
+is the system it slots into.
+
+**Start at the curve.** In most B2B businesses a small share of accounts carries a
+large share of revenue, and Figma's public numbers suggest the same shape. The map
+cuts that curve into three bands, and the reason to cut it is that *the costly error
+changes* as you move right:
+
+- **Top accounts — tune for recall.** The work is making sure the account team is
+  never surprised: champion tracking, contact hygiene, a heads-up when something
+  shifts. The expensive failure on the left is the *missed* signal, like the champion
+  who quietly changed jobs three weeks before renewal. So the system over-alerts and
+  a human dismisses.
+- **The middle — nail the intercept.** The most interesting band for Figma
+  specifically: growth is expansion-led (NDR 139%, Q1 FY2026), and AEs own those
+  conversations directly. The hard problem is *timing*, knowing when an account is
+  ready. One signal is usage (seats growing, new surfaces adopted); the other is what
+  people at the account say outside the product (someone asking publicly about a
+  problem Figma solves). Either alone is a guess; both at once is the moment a rep
+  should reach out. That join is built here as the intercept pass (§4.7c).
+- **The tail — automate, and tune for precision.** Run it in batch and gate it hard,
+  because at volume the costly error flips: one fake lead in a rep's channel and they
+  mute the whole thing. This repo's trust layer (§3) is that gating, working code.
+
+**Under the bands, three layers.**
+
+- **Shared context** — one governed store where every record carries both halves:
+  fields a machine can query *and* evidence a human can judge, every claim cited back
+  to its source. Here, that contract is `schema.py` plus the warehouse tables (§4.11).
+- **A batch state machine** — TAM → Enrich → Qualify → Signals → Action, with the
+  quality checks as steps on the line itself so nothing can skip them, and all the
+  rules in one place so there is exactly one spot to look when you ask why an account
+  surfaced (or didn't). It runs once a day as one rerunnable batch rather than a web
+  of instant triggers, because a batch can answer "what happened last Tuesday?" and a
+  trigger web can't. `pipeline.py` is that machine for the external-intent slice.
+- **Agents on shared rails** — central agents (intent, hygiene, heat) next to custom
+  agents teams build themselves, suggest-only first. Recipes (§4.9) are the concrete
+  mechanism: anyone can ship a signal, nobody can weaken a gate.
+
+**The evals rail** on the map's right edge is the answer to "is it actually working":
+precision, recall, **action rate** (the headline metric, because precision and recall
+can both look great while reps ignore the tool), cost per strong lead, and golden
+sets as the exam every change re-takes before it ships. What flows back out of the
+rail is reviewable config changes, never something the system quietly does to itself.
+Here: `monitoring.py`, the golden set, and the adoption loop (§4.7d).
+
+**Two habits hold the map together.** Centralize the data, decentralize the agents.
+And agents suggest, humans commit: anything hard to take back stays with a person
+until the numbers earn more autonomy. Rollout follows `GOVERNANCE.md` — one pilot
+pod, an explicit bar to clear, named owners, a kill-switch.
+
+---
+
 ## 2. What it does — the pipeline
 
 ```
