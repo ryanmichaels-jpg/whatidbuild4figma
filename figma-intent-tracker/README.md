@@ -161,9 +161,9 @@ raw comment volume.
 The sharpest reframe of the project. "Design" is ambiguous; the real question is
 *could Figma displace the solution this poster is offering?* We built a
 **capability map** (`figma_capabilities.json`) grounded in **Config 2026** (Figma
-Design, Make, Sites, Slides, FigJam, Dev Mode/Code Layers, Draw, Buzz, Motion), and a
-**displacement map** (`displacement_map.json`) mapping each surface to the competitor
-it eats (After Effects → Motion, Webflow/Framer → Sites, PowerPoint/Gamma → Slides,
+Design, Make, Sites, Slides, FigJam, Dev Mode/Code Layers, Draw, Buzz, Motion), and
+**displacement recipes** (`recipes/*.json`, see §4.9) mapping each surface to the
+competitor it eats (After Effects → Motion, Webflow/Framer → Sites, PowerPoint/Gamma → Slides,
 Miro → FigJam, Claude Code → Make, Zeplin/Anima → Dev Mode, Midjourney → Buzz).
 
 The gate now outputs `figma_surface`. Live proof of judgment, not keyword matching:
@@ -272,8 +272,10 @@ match the synthetic CRM and correctly route as net-new — which is the honest o
 
 **Decision: the same scrape that finds leads also cleans the CRM — for free.**
 
-Figma's Marketing Ops team went on record (Clay case study) that their core GTM pain was
-**stale Salesforce contacts** — years of people who changed jobs or titles. But the miner
+Figma's GTM Ops team is on record (Clay's bulk-enrichment case study) that CRM enrichment
+at scale is a core need — *"bulk enrichment is exactly what we need to scale our CRM
+enrichment process."* **Stale Salesforce contacts** — years of people who changed jobs or
+titles — are the canonical form of that problem for any PLG-then-sales CRM. And the miner
 already sees every commenter's **current** headline and company. So `hygiene.py` runs after
 the ICP filter, **deterministically and at zero tokens**, diffing the scraped profile
 against the SFDC contact record and emitting a flag: `job_change` (company moved),
@@ -371,7 +373,7 @@ loop) — the base surfaces remain the measured ground truth.
 
 **Decision: model the pipeline as expansion + net-new, because that's Figma's motion.**
 
-Figma's growth is expansion-led — **NDR 139%**, AEs own expansion, and there's **no CS team** —
+Figma's growth is expansion-led — **NDR 139%** (Q1 FY2026), AEs own expansion, and there's **no CS team** (per Figma's CRO on 20Sales, Mar 2026) —
 so an expansion signal is worth more than a cold net-new one and converts at a multiple. Routing
 already tags each lead's lane (existing-customer signals → *expansion*; no-match → *net-new*), so
 the dashboard now splits the pipeline into the two lanes, and the thesis math follows.
@@ -491,8 +493,10 @@ Python · **pydantic** (the trust contract) · **Anthropic `claude-haiku-4-5`**
 (classifier, schema-constrained) · **Apify** (LinkedIn post-search, post-comments,
 post-detail; Google search — all cookie-free) · **Salesforce** (account match /
 expansion routing; synthetic in demo, API integration point for live) · **Slack**
-(incoming webhook delivery) · static HTML dashboard. No framework — the orchestration
-is plain, inspectable code so every step is auditable.
+(incoming webhook delivery) · static HTML dashboard · **warehouse sink** (partitioned
+parquet/JSONL locally, Snowflake as the documented live target) with **dbt** models on
+top. No framework — the orchestration is plain, inspectable code so every step is
+auditable.
 
 ---
 
@@ -536,12 +540,19 @@ classify.py        haiku classifier: schema-locked, post-conditioned, self-consi
 gate.py            verbatim-evidence trust gate
 verify.py          praise-mislabel quality check
 richness.py        signal-richness grading
-accounts.py        Salesforce match + expansion-first routing
+accounts.py        Salesforce match + expansion-first routing + intercept pass
+hygiene.py         CRM-hygiene flags (job_change / title_stale) — parallel output, zero tokens
+feedback.py        rep-reaction adoption loop (👍/👎/🔁 → golden candidates)
+recipes.py         loads + validates recipes/*.json (fail-loud; recipes can't touch gates)
 notify.py          Slack delivery (human-in-the-loop)
 monitoring.py      per-run metrics + run log
 dashboard.py       static HTML monitoring view
 schema.py          pydantic models — the trust contract
-data/              icp_titles · figma_capabilities · displacement_map · sfdc_accounts
+apify_run.py       thin Apify actor-call wrapper
+recipes/           displacement signal recipes (base + config2026) + their JSON schema
+warehouse/         five-table warehouse sink (parquet/JSONL local, snowflake stub)
+dbt/               derived models on the warehouse (account_heat, champion_departure)
+data/              icp_titles · figma_capabilities · sfdc_accounts + contacts
                    · golden + demo fixtures   (the swappable domain "knowledge")
 tests/             golden-set eval + unit tests for every deterministic layer
 ```
@@ -551,8 +562,9 @@ tests/             golden-set eval + unit tests for every deterministic layer
 ## 12. Reusability — it's a domain-agnostic engine
 
 Nothing in the trust layer, the union retriever, the gates, the routing, or the
-monitoring knows what Figma is. "Figma" lives entirely in four data files (capability
-map, displacement map, ICP titles, stop-list) plus the demo fixtures. Re-point those
-four files and the same engine mines, gates, and routes leads for **any** product
+monitoring knows what Figma is. "Figma" lives entirely in swappable config: the
+capability map and ICP titles (`data/`), the displacement recipes (`recipes/*.json`),
+the discovery stop-list (`discover.py`), and the demo fixtures. Re-point those
+and the same engine mines, gates, and routes leads for **any** product
 with a displacement story and a buyer committee — which is exactly the test of
 whether the trust layer, not the agent, was the real work.
